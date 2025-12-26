@@ -1,140 +1,112 @@
-
-const functions = require("firebase-functions");
+const { onCall, onRequest } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const axios = require("axios");
 
 admin.initializeApp();
 const db = admin.firestore();
 
-// --- Loyverse Credentials ---
+const BIZAPP_API_KEY = "83ndoryq-aaaw-v5lj-3tiy-2t4cuygj9rvn";
+const BIZAPP_CATEGORY = "w4zw0teb"; 
 const LOYVERSE_TOKEN = "d9d14fd02ac34292ab50e221da50ddb3";
 const LOYVERSE_STORE_ID = "7611fff5-5af4-43e4-8758-3f06a1090eed";
 const LOYVERSE_PAYMENT_ID = "df4f339c-c806-4cf0-83c9-43ef624a78ac";
 
 const loyverseApi = axios.create({
   baseURL: "https://api.loyverse.com/v1.0",
-  headers: {
-    "Authorization": `Bearer ${LOYVERSE_TOKEN}`,
-  },
+  headers: { "Authorization": `Bearer ${LOYVERSE_TOKEN}` },
 });
 
-/**
- * Logs synchronization errors to a dedicated Firestore collection.
- * @param {string} bookingId - The ID of the booking that failed.
- * @param {any} error - The error object or message.
- * @param {string} stage - The stage where the error occurred (e.g., 'getVariant', 'createReceipt').
- */
-const logSyncError = async (bookingId, error, stage) => {
-  console.error(`Loyverse sync failed for booking ${bookingId} at stage ${stage}:`, error);
-  await db.collection("failed_sync").add({
-    bookingId,
-    stage,
-    errorMessage: error.message || "An unknown error occurred.",
-    errorDetails: error.response ? error.response.data : error.toString(),
-    timestamp: admin.firestore.FieldValue.serverTimestamp(),
-  });
-};
-
-/**
- * A callable function to finalize a booking, decrement slots, and sync with Loyverse.
- */
-exports.syncAndFinalizeBooking = functions.https.onCall(async (data, context) => {
-  const {bookingId} = data;
-  if (!bookingId) {
-    throw new functions.https.HttpsError("invalid-argument", "The function must be called with a 'bookingId'.");
-  }
-
+// SHARED LOGIC: The actual workhorse for Auto & Manual updates
+async function processSuccessfulPayment(bookingId) {
   const bookingRef = db.collection("bookings").doc(bookingId);
   const bookingDoc = await bookingRef.get();
 
-  if (!bookingDoc.exists) {
-    throw new functions.https.HttpsError("not-found", `Booking with ID ${bookingId} not found.`);
-  }
+  if (!bookingDoc.exists) return `ID ${bookingId} not found.`;
+  if (bookingDoc.data().paymentStatus === 'paid') return `ID ${bookingId} already processed.`;
 
   const bookingData = bookingDoc.data();
-
-  // --- Step 1: Sync with Loyverse (and collect variant IDs) ---
-  const lineItemsForLoyverse = [];
-  let syncSuccessful = true;
+  const sessionSnapshots = [];
 
   for (const item of bookingData.items) {
-    try {
-      const courseDoc = await db.collection("courses").doc(item.courseId).get();
-      if (!courseDoc.exists || !courseDoc.data().sku) {
-        throw new Error(`Course ${item.courseId} not found or has no SKU.`);
-      }
-      const sku = courseDoc.data().sku;
-
-      const variantResponse = await loyverseApi.get(`/variants?sku=${sku}`);
-      if (!variantResponse.data.variants || variantResponse.data.variants.length === 0) {
-        throw new Error(`No Loyverse variant found for SKU: ${sku}`);
-      }
-      const variantId = variantResponse.data.variants[0].id;
-
-      lineItemsForLoyverse.push({
-        variant_id: variantId,
-        quantity: item.quantity,
-        price: item.price,
-        line_total_gross: item.price * item.quantity,
-      });
-    } catch (error) {
-      await logSyncError(bookingId, error, "getVariant");
-      syncSuccessful = false;
-      // We continue to process the booking internally even if sync fails
+    const sDoc = await db.collection("sessions").doc(item.sessionId).get();
+    if (sDoc.exists) {
+      sessionSnapshots.push({ id: item.sessionId, currentSlots: sDoc.data().remainingSlots || 0, qty: item.quantity });
     }
   }
 
-  // If we successfully found all variants, create the receipt
-  if (syncSuccessful && lineItemsForLoyverse.length > 0) {
-    try {
-      const receiptPayload = {
-        store_id: LOYVERSE_STORE_ID,
-        source: "API",
-        line_items: lineItemsForLoyverse,
-        payments: [{
-          payment_type_id: LOYVERSE_PAYMENT_ID,
-          amount: bookingData.totalAmount,
-        }],
-      };
-      await loyverseApi.post("/receipts", receiptPayload);
-      functions.logger.info(`Successfully created Loyverse receipt for booking ${bookingId}`);
-    } catch (error) {
-      await logSyncError(bookingId, error, "createReceipt");
-      // The booking will still be marked as 'paid' internally.
+  await db.runTransaction(async (t) => {
+    t.update(bookingRef, { paymentStatus: 'paid' });
+    for (const s of sessionSnapshots) {
+      t.update(db.collection("sessions").doc(s.id), { remainingSlots: Math.max(0, s.currentSlots - s.qty) });
+    }
+  });
+
+  const lineItems = [];
+  for (const item of bookingData.items) {
+    const courseDoc = await db.collection("courses").doc(item.courseId).get();
+    const sku = courseDoc.data()?.sku;
+    if (sku) {
+      const vRes = await loyverseApi.get(`/variants?sku=${sku}`);
+      if (vRes.data.variants?.length > 0) {
+        lineItems.push({ variant_id: vRes.data.variants[0].id, quantity: item.quantity, price: item.price });
+      }
     }
   }
 
-
-  // --- Step 2: Finalize booking in Firestore within a transaction ---
-  try {
-    await db.runTransaction(async (transaction) => {
-      // a. Update the booking status to 'paid'
-      transaction.update(bookingRef, {paymentStatus: "paid"});
-
-      // b. Decrement the remaining slots for each session
-      for (const item of bookingData.items) {
-        const sessionRef = db.collection("sessions").doc(item.sessionId);
-        const sessionDoc = await transaction.get(sessionRef);
-        if (!sessionDoc.exists()) {
-          throw new Error(`Session ${item.sessionId} not found!`);
-        }
-        const currentSlots = sessionDoc.data().remainingSlots;
-        if (currentSlots < item.quantity) {
-          throw new functions.https.HttpsError("aborted", `Not enough slots for ${item.courseName}. Requested: ${item.quantity}, Available: ${currentSlots}`);
-        }
-        transaction.update(sessionRef, {remainingSlots: currentSlots - item.quantity});
-      }
+  if (lineItems.length > 0) {
+    await loyverseApi.post("/receipts", {
+      store_id: LOYVERSE_STORE_ID,
+      line_items: lineItems,
+      payments: [{ payment_type_id: LOYVERSE_PAYMENT_ID, amount: bookingData.totalAmount }]
     });
-    functions.logger.info(`Transaction for booking ${bookingId} committed successfully.`);
-    return {status: "success", bookingId};
-  } catch (error) {
-    functions.logger.error("Firestore transaction failed:", error);
-    // If the transaction fails, update the booking status to 'failed'
-    await bookingRef.update({paymentStatus: "failed"});
-    // Re-throw the specific error from the transaction (e.g., not enough slots)
-    if (error instanceof functions.https.HttpsError) {
-        throw error;
-    }
-    throw new functions.https.HttpsError("aborted", "Booking failed due to an internal error.", error);
   }
+  return `SUCCESS: Booking ${bookingId} updated.`;
+}
+
+exports.createBizappayBill = onCall({ cors: true }, async (request) => {
+  const { bookingId, amount, customerName, customerEmail, customerPhone } = request.data;
+  const loginData = new URLSearchParams();
+  loginData.append('apiKey', BIZAPP_API_KEY);
+  const tokenRes = await axios.post('https://bizappay.my/api/v3/token', loginData);
+  const authToken = tokenRes.data?.token || tokenRes.data?.data?.token;
+
+  const formData = new URLSearchParams();
+  formData.append('apiKey', BIZAPP_API_KEY);
+  formData.append('category', BIZAPP_CATEGORY);
+  formData.append('name', 'LRC Course Booking');
+  formData.append('amount', parseFloat(amount).toFixed(2));
+  formData.append('payer_name', customerName);
+  formData.append('payer_email', customerEmail);
+  formData.append('payer_phone', customerPhone);
+  formData.append('webreturn_url', `https://lrc-course.vercel.app/#/confirmation?bookingId=${bookingId}`);
+  formData.append('callback_url', `https://bizappaywebhook-2n7sc53hoa-uc.a.run.app`);
+  formData.append('ext_reference', bookingId);
+  formData.append('billcode', bookingId); 
+
+  const response = await axios.post('https://bizappay.my/api/v3/bill/create', formData, {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Authentication': authToken }
+  });
+  return { url: response.data?.url || response.data?.data?.url };
+});
+
+exports.bizappayWebhook = onRequest(async (req, res) => {
+  let data = { ...req.query, ...req.body };
+  if (Buffer.isBuffer(req.body)) {
+    const rawText = req.body.toString('utf-8');
+    const matches = rawText.matchAll(/name="([^"]+)"\r\n\r\n([\s\S]+?)\r\n/g);
+    for (const match of matches) { data[match[1]] = match[2].trim(); }
+  }
+  const bookingId = (data.billcode || data.ext_reference || "").trim().replace(/[.]/g, '');
+  const status = String(data.billstatus || data.status || "").replace(/[^0-9a-zA-Z]/g, '');
+
+  if (status === '1' || status.toLowerCase() === 'paid') {
+    await processSuccessfulPayment(bookingId);
+  }
+  res.status(200).send("OK");
+});
+
+exports.manualAdminUpdate = onRequest(async (req, res) => {
+  const { bookingId } = req.query;
+  const result = await processSuccessfulPayment(bookingId);
+  res.status(200).send(result);
 });

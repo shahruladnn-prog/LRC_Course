@@ -1,4 +1,3 @@
-
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getAuth, Auth } from 'firebase/auth';
 import { getFirestore, initializeFirestore, Firestore } from 'firebase/firestore';
@@ -23,7 +22,6 @@ class FirebaseService {
   private constructor() {
     if (getApps().length === 0) {
       this.app = initializeApp(firebaseConfig);
-      // Critical instruction: use initializeFirestore with experimentalAutoDetectLongPolling
       this.db = initializeFirestore(this.app, {
         experimentalAutoDetectLongPolling: true,
       });
@@ -32,7 +30,9 @@ class FirebaseService {
       this.db = getFirestore(this.app);
     }
     this.auth = getAuth(this.app);
-    this.functions = getFunctions(this.app);
+    
+    // CRITICAL: Point to us-central1 to fix 503 errors
+    this.functions = getFunctions(this.app, 'us-central1');
   }
 
   public static getInstance(): FirebaseService {
@@ -44,7 +44,9 @@ class FirebaseService {
 }
 
 const firebaseService = FirebaseService.getInstance();
+
 export const auth = firebaseService.auth;
 export const db = firebaseService.db;
 export const functions = firebaseService.functions;
+
 export default firebaseService;

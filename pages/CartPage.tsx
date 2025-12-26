@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../hooks/useCart';
@@ -11,7 +10,7 @@ import Logo from '../components/common/Logo';
 const isWithin7Days = (dateString: string): boolean => {
     const sessionDate = new Date(dateString);
     const today = new Date();
-    today.setHours(0, 0, 0, 0); // Normalize today to the start of the day
+    today.setHours(0, 0, 0, 0); 
     const sevenDaysFromNow = new Date();
     sevenDaysFromNow.setDate(today.getDate() + 7);
     return sessionDate >= today && sessionDate <= sevenDaysFromNow;
@@ -27,6 +26,7 @@ const CartPage: React.FC = () => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // --- UPDATED FOR AUTOMATION: Redirects to Bizappay ---
     const handleCheckout = async () => {
         if (!customerFullName || !customerEmail || !customerPhone) {
             setError("Please fill in your Full Name, Email, and Phone Number.");
@@ -57,18 +57,28 @@ const CartPage: React.FC = () => {
                 bookingDate: new Date(),
             });
 
-            // 2. Call the secure cloud function to process payment, sync to Loyverse, and finalize booking
-            const syncAndFinalizeBooking = httpsCallable(functions, 'syncAndFinalizeBooking');
-            await syncAndFinalizeBooking({ bookingId });
+            // 2. Call the NEW Cloud Function to create the Bill
+            const createBizappayBill = httpsCallable(functions, 'createBizappayBill');
+            const result = await createBizappayBill({ 
+                bookingId, 
+                amount: totalAmount,
+                customerName: customerFullName,
+                customerEmail: customerEmail,
+                customerPhone: customerPhone
+            });
             
-            // 3. If successful, navigate to confirmation page
-            const bookingDetails = { customerFullName, totalAmount, items: bookingItems };
-            clearCart();
-            navigate('/confirmation', { state: bookingDetails });
+            // 3. Redirect the user to the Bizappay Payment Page
+            const paymentUrl = (result.data as any)?.url;
+            if (paymentUrl) {
+                clearCart();
+                window.location.href = paymentUrl;
+            } else {
+                throw new Error("Could not generate payment link. Please try again.");
+            }
 
         } catch (e: any) {
             console.error("Checkout failed:", e);
-            setError(e.message || "An error occurred during checkout. One or more slots may no longer be available. Please try again.");
+            setError(e.message || "An error occurred. Please check your internet connection.");
         } finally {
             setIsProcessing(false);
         }
@@ -157,7 +167,7 @@ const CartPage: React.FC = () => {
                                     disabled={isProcessing}
                                     className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out hover:bg-green-700 disabled:bg-slate-400 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
                                 >
-                                    {isProcessing ? 'Processing Payment...' : 'Proceed to Payment'}
+                                    {isProcessing ? 'Redirecting to Gateway...' : 'Proceed to Payment'}
                                 </button>
                             </div>
                         </div>
