@@ -1,0 +1,6 @@
+
+{
+  "name": "LRC Course",
+  "description": "An e-commerce booking system for Lake Recreation Center Putrajaya courses, built with React and Firebase. Features separate admin and client interfaces for managing courses, sessions, and bookings.",
+  "requestFramePermissions": []
+}

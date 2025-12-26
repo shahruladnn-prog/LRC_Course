@@ -1,0 +1,2876 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.gitignore
+App.tsx
+components/admin/BookingsManagement.tsx
+components/admin/CategoryManager.tsx
+components/admin/CourseForm.tsx
+components/admin/CourseManager.tsx
+components/admin/SessionForm.tsx
+components/admin/SlotManager.tsx
+components/common/ConfirmationModal.tsx
+components/common/FirebaseGuard.tsx
+components/common/LoadingSpinner.tsx
+components/common/Logo.tsx
+components/common/ProtectedRoute.tsx
+components/common/TermsModal.tsx
+context/AuthContext.tsx
+context/CartContext.tsx
+functions/index.js
+functions/package.json
+hooks/useAuth.ts
+hooks/useCart.ts
+index.html
+index.tsx
+metadata.json
+package.json
+pages/AdminDashboard.tsx
+pages/AdminLogin.tsx
+pages/CartPage.tsx
+pages/OrderConfirmationPage.tsx
+pages/Storefront.tsx
+README.md
+services/firebase.ts
+services/firestoreService.ts
+tsconfig.json
+types/index.ts
+vite.config.ts
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".gitignore">
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+</file>
+
+<file path="App.tsx">
+import React from 'react';
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom';
+import FirebaseGuard from './components/common/FirebaseGuard';
+import AdminLogin from './pages/AdminLogin';
+import AdminDashboard from './pages/AdminDashboard';
+import Storefront from './pages/Storefront';
+import CartPage from './pages/CartPage';
+import OrderConfirmationPage from './pages/OrderConfirmationPage';
+import ProtectedRoute from './components/common/ProtectedRoute';
+import { AuthProvider } from './context/AuthContext';
+import { CartProvider } from './context/CartContext';
+
+const App: React.FC = () => {
+  return (
+    <FirebaseGuard>
+      <AuthProvider>
+        <CartProvider>
+          <HashRouter>
+            <Routes>
+              <Route path="/" element={<Storefront />} />
+              <Route path="/cart" element={<CartPage />} />
+              <Route path="/confirmation" element={<OrderConfirmationPage />} />
+              <Route path="/admin/login" element={<AdminLogin />} />
+              <Route 
+                path="/admin/dashboard" 
+                element={
+                  <ProtectedRoute>
+                    <AdminDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route path="*" element={<Navigate to="/" />} />
+            </Routes>
+          </HashRouter>
+        </CartProvider>
+      </AuthProvider>
+    </FirebaseGuard>
+  );
+};
+
+export default App;
+</file>
+
+<file path="components/admin/BookingsManagement.tsx">
+import React, { useState, useEffect, useMemo } from 'react';
+import { getBookings, getCourses, getCategories } from '../../services/firestoreService';
+import { Booking, Course, Category } from '../../types';
+import LoadingSpinner from '../common/LoadingSpinner';
+
+const BookingsManagement: React.FC = () => {
+    const [bookings, setBookings] = useState<Booking[]>([]);
+    const [courses, setCourses] = useState<Course[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    const [filterCourse, setFilterCourse] = useState<string>('all');
+    const [filterCategory, setFilterCategory] = useState<string>('all');
+    const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
+
+    useEffect(() => {
+        const fetchData = async () => {
+            setIsLoading(true);
+            try {
+                const [bookingsData, coursesData, categoriesData] = await Promise.all([
+                    getBookings(),
+                    getCourses(),
+                    getCategories()
+                ]);
+                setBookings(bookingsData);
+                setCourses(coursesData);
+                setCategories(categoriesData);
+            } catch (error) {
+                console.error("Failed to fetch booking data:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchData();
+    }, []);
+
+    const filteredAndSortedBookings = useMemo(() => {
+        return bookings
+            .filter(booking => {
+                const courseMatch = filterCourse === 'all' || booking.items.some(item => item.courseId === filterCourse);
+                const categoryMatch = filterCategory === 'all' || booking.items.some(item => item.category === filterCategory);
+                return courseMatch && categoryMatch;
+            })
+            .sort((a, b) => {
+                const dateA = a.bookingDate instanceof Date ? a.bookingDate.getTime() : new Date(a.bookingDate.seconds * 1000).getTime();
+                const dateB = b.bookingDate instanceof Date ? b.bookingDate.getTime() : new Date(b.bookingDate.seconds * 1000).getTime();
+                return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
+            });
+    }, [bookings, filterCourse, filterCategory, sortOrder]);
+
+    const formatDate = (date: { seconds: number; nanoseconds: number; } | Date) => {
+        if (date instanceof Date) {
+            return date.toLocaleString();
+        }
+        return new Date(date.seconds * 1000).toLocaleString();
+    };
+
+    if (isLoading) {
+        return <div className="flex justify-center items-center"><LoadingSpinner /></div>;
+    }
+
+    return (
+        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md">
+            <h2 className="text-2xl font-bold mb-4 text-slate-800">Bookings Management</h2>
+            
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                <div>
+                    <label className="block text-sm font-medium text-slate-700">Filter by Course</label>
+                    <select value={filterCourse} onChange={e => setFilterCourse(e.target.value)} className="mt-1 block w-full p-2 border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white text-slate-900">
+                        <option value="all">All Courses</option>
+                        {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-slate-700">Filter by Category</label>
+                    <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="mt-1 block w-full p-2 border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white text-slate-900">
+                        <option value="all">All Categories</option>
+                        {categories.map(cat => <option key={cat.id} value={cat.name}>{cat.name}</option>)}
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-slate-700">Sort by Date</label>
+                    <select value={sortOrder} onChange={e => setSortOrder(e.target.value as 'newest' | 'oldest')} className="mt-1 block w-full p-2 border-slate-300 rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white text-slate-900">
+                        <option value="newest">Newest First</option>
+                        <option value="oldest">Oldest First</option>
+                    </select>
+                </div>
+            </div>
+
+            <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-slate-200 md:table">
+                    <thead className="hidden md:table-header-group bg-slate-50">
+                        <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Customer</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Booking Details</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Amount</th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-slate-200 md:divide-none">
+                        {filteredAndSortedBookings.length > 0 ? filteredAndSortedBookings.map(booking => (
+                             <tr key={booking.id} className="block mb-4 p-4 border rounded-lg shadow-sm md:table-row md:p-0 md:border-none md:shadow-none md:mb-0">
+                                <td data-label="Customer" className="block py-2 px-4 md:px-6 md:py-4 md:table-cell md:whitespace-nowrap text-right md:text-left border-b md:border-b-0 before:content-[attr(data-label)] before:font-bold before:float-left md:before:content-none">
+                                    <div className="text-sm font-medium text-slate-900">{booking.customerFullName}</div>
+                                    <div className="text-sm text-slate-500">{booking.customerEmail}</div>
+                                    <div className="text-sm text-slate-500">{booking.customerPhone}</div>
+                                </td>
+                                <td data-label="Booking Details" className="block py-2 px-4 md:px-6 md:py-4 md:table-cell text-right md:text-left border-b md:border-b-0 before:content-[attr(data-label)] before:font-bold before:float-left md:before:content-none">
+                                    <ul className="text-sm text-slate-700 list-disc list-inside space-y-1 text-right md:text-left">
+                                        {booking.items.map((item, index) => (
+                                            <li key={index}><strong>{item.quantity}x {item.courseName}</strong> on {item.sessionDate}</li>
+                                        ))}
+                                    </ul>
+                                    <div className="text-xs text-slate-400 mt-2">Booked: {formatDate(booking.bookingDate)}</div>
+                                </td>
+                                <td data-label="Amount" className="block py-2 px-4 md:px-6 md:py-4 md:table-cell md:whitespace-nowrap text-right md:text-left border-b md:border-b-0 before:content-[attr(data-label)] before:font-bold before:float-left md:before:content-none">
+                                    <span className="text-sm font-semibold text-slate-800">
+                                        RM{booking.totalAmount.toFixed(2)}
+                                    </span>
+                                </td>
+                                <td data-label="Status" className="block py-2 px-4 md:px-6 md:py-4 md:table-cell md:whitespace-nowrap text-right md:text-left before:content-[attr(data-label)] before:font-bold before:float-left md:before:content-none">
+                                    <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                                        booking.paymentStatus === 'paid' ? 'bg-green-100 text-green-800' : 
+                                        booking.paymentStatus === 'pending' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'
+                                    }`}>
+                                        {booking.paymentStatus}
+                                    </span>
+                                </td>
+                            </tr>
+                        )) : (
+                            <tr>
+                                <td colSpan={4} className="text-center py-10 text-slate-500">
+                                    No bookings match the current filters.
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    );
+};
+
+export default BookingsManagement;
+</file>
+
+<file path="components/admin/CategoryManager.tsx">
+import React, { useState, FormEvent } from 'react';
+import { Category } from '../../types';
+import ConfirmationModal from '../common/ConfirmationModal';
+
+interface CategoryManagerProps {
+    categories: Category[];
+    onCategoryAdd: (category: Omit<Category, 'id'>) => Promise<void>;
+    onCategoryUpdate: (categoryId: string, categoryData: Partial<Category>) => Promise<void>;
+    onCategoryDelete: (categoryId: string) => Promise<void>;
+}
+
+const CategoryManager: React.FC<CategoryManagerProps> = ({ categories, onCategoryAdd, onCategoryUpdate, onCategoryDelete }) => {
+    const [newCategoryName, setNewCategoryName] = useState('');
+    const [isSaving, setIsSaving] = useState(false);
+    
+    const [editingCategoryId, setEditingCategoryId] = useState<string | null>(null);
+    const [editingCategoryName, setEditingCategoryName] = useState('');
+
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+    const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
+    const [isDeleting, setIsDeleting] = useState(false);
+
+    const handleAddSubmit = async (e: FormEvent) => {
+        e.preventDefault();
+        if (!newCategoryName.trim()) return;
+        setIsSaving(true);
+        await onCategoryAdd({ name: newCategoryName });
+        setIsSaving(false);
+        setNewCategoryName('');
+    };
+
+    const handleEditClick = (category: Category) => {
+        setEditingCategoryId(category.id);
+        setEditingCategoryName(category.name);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingCategoryId(null);
+        setEditingCategoryName('');
+    };
+    
+    const handleUpdate = async () => {
+        if (!editingCategoryId || !editingCategoryName.trim()) return;
+        setIsSaving(true);
+        await onCategoryUpdate(editingCategoryId, { name: editingCategoryName });
+        setIsSaving(false);
+        handleCancelEdit();
+    };
+
+    const handleDeleteClick = (categoryId: string) => {
+        setCategoryToDelete(categoryId);
+        setIsConfirmModalOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (categoryToDelete) {
+            setIsDeleting(true);
+            await onCategoryDelete(categoryToDelete);
+            setIsDeleting(false);
+            setIsConfirmModalOpen(false);
+            setCategoryToDelete(null);
+        }
+    };
+    
+    const handleCancelDelete = () => {
+        setIsConfirmModalOpen(false);
+        setCategoryToDelete(null);
+    };
+
+    return (
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <ConfirmationModal
+                isOpen={isConfirmModalOpen}
+                onClose={handleCancelDelete}
+                onConfirm={handleConfirmDelete}
+                title="Delete Category"
+                message="Are you sure you want to delete this category? This action cannot be undone."
+                confirmText="Delete"
+                isConfirming={isDeleting}
+            />
+
+            <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-md">
+                <h2 className="text-2xl font-bold text-slate-800 mb-4">Existing Categories</h2>
+                {categories.length > 0 ? (
+                     <div className="border border-slate-200 rounded-lg">
+                        <ul className="divide-y divide-slate-200">
+                        {categories.map(category => (
+                            <li key={category.id} className="p-4 flex justify-between items-center">
+                                {editingCategoryId === category.id ? (
+                                    <div className="flex-grow flex items-center gap-2">
+                                        <input 
+                                            type="text"
+                                            value={editingCategoryName}
+                                            onChange={e => setEditingCategoryName(e.target.value)}
+                                            className="flex-grow px-2 py-1 border border-slate-300 rounded-md shadow-sm sm:text-sm focus:ring-indigo-500 focus:border-indigo-500 bg-white text-slate-900"
+                                        />
+                                        <button onClick={handleUpdate} disabled={isSaving} className="text-sm bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-3 rounded-md disabled:bg-green-400">{isSaving ? 'Saving...' : 'Save'}</button>
+                                        <button onClick={handleCancelEdit} className="text-sm bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-1 px-3 rounded-md">Cancel</button>
+                                    </div>
+                                ) : (
+                                    <>
+                                        <span className="font-medium text-slate-800">{category.name}</span>
+                                        <div className="flex items-center gap-4">
+                                             <button onClick={() => handleEditClick(category)} className="text-indigo-600 hover:text-indigo-800 text-sm font-medium">Edit</button>
+                                            <button 
+                                                onClick={() => handleDeleteClick(category.id)}
+                                                className="text-red-600 hover:text-red-800 text-sm font-medium"
+                                            >
+                                                Delete
+                                            </button>
+                                        </div>
+                                    </>
+                                )}
+                            </li>
+                        ))}
+                    </ul>
+                     </div>
+                ) : (
+                    <p className="text-slate-500">No categories found. Add one to get started.</p>
+                )}
+            </div>
+             <div className="bg-white p-6 rounded-xl shadow-md">
+                <h3 className="text-xl font-bold text-slate-800 mb-4">Add New Category</h3>
+                <form onSubmit={handleAddSubmit} className="space-y-4">
+                     <div>
+                        <label htmlFor="category-name" className="block text-sm font-medium text-slate-700">Category Name</label>
+                        <input
+                            id="category-name"
+                            type="text"
+                            value={newCategoryName}
+                            onChange={(e) => setNewCategoryName(e.target.value)}
+                            placeholder="e.g., Digital Marketing"
+                            required
+                            className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white text-slate-900"
+                        />
+                     </div>
+                    <button
+                        type="submit"
+                        disabled={isSaving}
+                        className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-md transition duration-300 disabled:bg-indigo-400"
+                    >
+                        {isSaving ? 'Adding...' : 'Add Category'}
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+export default CategoryManager;
+</file>
+
+<file path="components/admin/CourseForm.tsx">
+import React, { useState, useEffect, FormEvent } from 'react';
+import { Course, Category } from '../../types';
+
+interface CourseFormProps {
+  course: Course | null;
+  categories: Category[];
+  onSave: (course: Omit<Course, 'id'> | Course) => void;
+  onCancel: () => void;
+  isSaving: boolean;
+}
+
+const CourseForm: React.FC<CourseFormProps> = ({ course, categories, onSave, onCancel, isSaving }) => {
+  const [name, setName] = useState('');
+  const [price, setPrice] = useState(0);
+  const [category, setCategory] = useState('');
+  const [termsAndConditions, setTermsAndConditions] = useState('');
+  const [isHidden, setIsHidden] = useState(false);
+  const [importantHighlight, setImportantHighlight] = useState('');
+  const [sku, setSku] = useState('');
+
+  useEffect(() => {
+    if (course) {
+      setName(course.name);
+      setPrice(course.price);
+      setCategory(course.category);
+      setTermsAndConditions(course.termsAndConditions);
+      setIsHidden(course.isHidden || false);
+      setImportantHighlight(course.importantHighlight || '');
+      setSku(course.sku || '');
+    } else {
+      setName('');
+      setPrice(0);
+      setCategory(categories[0]?.name || '');
+      setTermsAndConditions('');
+      setIsHidden(false);
+      setImportantHighlight('');
+      setSku('');
+    }
+  }, [course, categories]);
+
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    const courseData = { name, price, category, termsAndConditions, isHidden, importantHighlight, sku };
+    if (course) {
+      onSave({ ...courseData, id: course.id });
+    } else {
+      onSave(courseData);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-50">
+        <div className="bg-white p-8 rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            <h2 className="text-2xl font-bold mb-6 text-slate-900">{course ? 'Edit Course' : 'Add New Course'}</h2>
+            <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                    <label className="block text-sm font-medium text-slate-700">Course Name</label>
+                    <input type="text" value={name} onChange={e => setName(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 placeholder-slate-500 text-slate-900 bg-white"/>
+                </div>
+                 <div>
+                    <label className="block text-sm font-medium text-slate-700">SKU (Stock Keeping Unit)</label>
+                    <input type="text" value={sku} onChange={e => setSku(e.target.value)} required placeholder="SKU-COURSE-001" className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 placeholder-slate-500 text-slate-900 bg-white"/>
+                    <p className="mt-1 text-xs text-slate-500">Must match the SKU in your Loyverse Back Office exactly.</p>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-slate-700">Price (RM)</label>
+                    <input type="number" value={price} onChange={e => setPrice(Number(e.target.value))} required className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 placeholder-slate-500 text-slate-900 bg-white"/>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-slate-700">Category</label>
+                    <select value={category} onChange={e => setCategory(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 bg-white text-slate-900">
+                        {categories.length === 0 ? (
+                            <option disabled>Please add a category first</option>
+                        ) : (
+                            categories.map(cat => (
+                                <option key={cat.id} value={cat.name}>{cat.name}</option>
+                            ))
+                        )}
+                    </select>
+                </div>
+                <div>
+                    <label className="block text-sm font-medium text-slate-700">Terms & Conditions</label>
+                    <textarea value={termsAndConditions} onChange={e => setTermsAndConditions(e.target.value)} required rows={4} className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 placeholder-slate-500 text-slate-900 bg-white"></textarea>
+                </div>
+                 <div>
+                    <label className="block text-sm font-medium text-slate-700">Important Highlight (Optional)</label>
+                    <textarea value={importantHighlight} onChange={e => setImportantHighlight(e.target.value)} rows={3} className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 placeholder-slate-500 text-slate-900 bg-white" placeholder="e.g., Early bird discount ends soon!"></textarea>
+                </div>
+                 <div>
+                    <label className="flex items-center space-x-3 cursor-pointer">
+                        <input 
+                            type="checkbox"
+                            checked={isHidden}
+                            onChange={e => setIsHidden(e.target.checked)}
+                            className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded"
+                        />
+                        <span className="text-sm font-medium text-slate-700">Hide course from storefront</span>
+                    </label>
+                </div>
+                <div className="flex justify-end space-x-4 pt-4">
+                    <button type="button" onClick={onCancel} className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-2 px-4 rounded-md">Cancel</button>
+                    <button 
+                        type="submit" 
+                        className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md disabled:bg-blue-400"
+                        disabled={isSaving || categories.length === 0}
+                    >
+                        {isSaving ? 'Saving...' : 'Save Course'}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+  );
+};
+
+export default CourseForm;
+</file>
+
+<file path="components/admin/CourseManager.tsx">
+import React, { useState } from 'react';
+import { Course, Category } from '../../types';
+import CourseForm from './CourseForm';
+import ConfirmationModal from '../common/ConfirmationModal';
+
+const LoyverseLinkIcon: React.FC<{ linked: boolean }> = ({ linked }) => (
+    <div className={`flex items-center gap-1.5 text-xs font-semibold px-2 py-0.5 rounded-full ${linked ? 'bg-blue-100 text-blue-800' : 'bg-slate-200 text-slate-600'}`} title={linked ? 'This course is linked to Loyverse via its SKU.' : 'SKU missing. This course is not linked to Loyverse.'}>
+        <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" /></svg>
+        <span>{linked ? 'Linked' : 'Not Linked'}</span>
+    </div>
+);
+
+interface CourseManagerProps {
+    courses: Course[];
+    categories: Category[];
+    onCourseSave: (course: Omit<Course, 'id'> | Course) => Promise<void>;
+    onCourseDelete: (courseId: string) => Promise<void>;
+}
+
+const CourseManager: React.FC<CourseManagerProps> = ({ courses, categories, onCourseSave, onCourseDelete }) => {
+    const [isCourseFormOpen, setIsCourseFormOpen] = useState(false);
+    const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+    const [isSavingCourse, setIsSavingCourse] = useState(false);
+    const [isDeleting, setIsDeleting] = useState<string | null>(null);
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+    const [courseToDelete, setCourseToDelete] = useState<string | null>(null);
+
+
+    const openEditForm = (course: Course) => {
+        setEditingCourse(course);
+        setIsCourseFormOpen(true);
+    };
+
+    const openNewForm = () => {
+        setEditingCourse(null);
+        setIsCourseFormOpen(true);
+    };
+    
+    const handleCourseSave = async (courseData: Omit<Course, 'id'> | Course) => {
+        setIsSavingCourse(true);
+        await onCourseSave(courseData);
+        setIsSavingCourse(false);
+        setIsCourseFormOpen(false);
+        setEditingCourse(null);
+    };
+
+    const handleDeleteClick = (courseId: string) => {
+        setCourseToDelete(courseId);
+        setIsConfirmModalOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (courseToDelete) {
+            setIsDeleting(courseToDelete);
+            await onCourseDelete(courseToDelete);
+            setIsDeleting(null);
+            setCourseToDelete(null);
+            setIsConfirmModalOpen(false);
+        }
+    };
+
+    const handleCancelDelete = () => {
+        setCourseToDelete(null);
+        setIsConfirmModalOpen(false);
+    };
+
+
+    return (
+        <div>
+             <div className="mb-6 flex justify-between items-center">
+                <h2 className="text-2xl font-bold text-slate-800">Your Courses</h2>
+                <button onClick={openNewForm} className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300 shadow-sm flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
+                    Add New Course
+                </button>
+            </div>
+
+            {isCourseFormOpen && (
+                <CourseForm 
+                    course={editingCourse} 
+                    categories={categories}
+                    onSave={handleCourseSave} 
+                    onCancel={() => { setIsCourseFormOpen(false); setEditingCourse(null); }}
+                    isSaving={isSavingCourse}
+                />
+            )}
+
+             <ConfirmationModal
+                isOpen={isConfirmModalOpen}
+                onClose={handleCancelDelete}
+                onConfirm={handleConfirmDelete}
+                title="Delete Course"
+                message={
+                    <>
+                        Are you sure you want to delete this course and all its associated slots? 
+                        <br />
+                        <span className="font-semibold text-red-700">This action cannot be undone.</span>
+                    </>
+                }
+                confirmText="Delete"
+                isConfirming={!!isDeleting}
+            />
+
+            <div className="bg-white p-6 rounded-xl shadow-md">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {courses.length > 0 ? courses.map(course => (
+                        <div key={course.id} className={`bg-slate-50 border border-slate-200 p-4 rounded-lg flex flex-col transition-opacity ${course.isHidden ? 'opacity-60' : ''}`}>
+                            <div className="flex-grow">
+                                <div className="flex justify-between items-start mb-2 gap-2">
+                                   <h3 className="text-xl font-bold text-slate-900 leading-tight">{course.name}</h3>
+                                    <div className="flex-shrink-0 flex flex-col items-end gap-1">
+                                        <span className="inline-block bg-indigo-100 text-indigo-800 text-xs font-semibold px-2.5 py-0.5 rounded-full">{course.category}</span>
+                                        {course.isHidden && <span className="inline-block bg-slate-200 text-slate-700 text-xs font-semibold px-2.5 py-0.5 rounded-full">Hidden</span>}
+                                    </div>
+                                </div>
+                                 <div className="flex justify-between items-center mb-3">
+                                    <p className="text-slate-700 font-semibold">RM{course.price.toFixed(2)}</p>
+                                    <LoyverseLinkIcon linked={!!course.sku} />
+                                 </div>
+                                <p className="text-xs text-slate-500 font-mono bg-slate-200 px-2 py-1 rounded">SKU: {course.sku || 'N/A'}</p>
+                            </div>
+                            <div className="mt-4 pt-4 border-t border-slate-200 flex items-center gap-2">
+                                 <button onClick={() => openEditForm(course)} className="flex-1 text-center bg-white hover:bg-slate-100 text-indigo-600 font-bold py-2 px-4 rounded-md transition duration-300 border border-indigo-600">
+                                     Edit
+                                 </button>
+                                  <button 
+                                    onClick={() => handleDeleteClick(course.id)} 
+                                    disabled={isDeleting === course.id}
+                                    className="p-2 text-red-600 bg-red-50 hover:bg-red-100 rounded-md border border-red-200 transition duration-300 disabled:opacity-50"
+                                    aria-label="Delete course"
+                                >
+                                    {isDeleting === course.id ? (
+                                        <svg className="animate-spin h-5 w-5 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                    ) : (
+                                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                    )}
+                                </button>
+                            </div>
+                        </div>
+                    )) : (
+                        <div className="col-span-full text-center py-10">
+                            <p className="text-slate-500">No courses found. Click "Add New Course" to get started.</p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default CourseManager;
+</file>
+
+<file path="components/admin/SessionForm.tsx">
+import React, { useState, FormEvent } from 'react';
+import { Session } from '../../types';
+
+interface SessionFormProps {
+  courseId: string;
+  onSave: (session: Omit<Session, 'id'>) => void;
+  isSaving: boolean;
+}
+
+const SessionForm: React.FC<SessionFormProps> = ({ courseId, onSave, isSaving }) => {
+  const [date, setDate] = useState('');
+  const [totalSlots, setTotalSlots] = useState(10);
+  
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    if (!date || totalSlots <= 0) {
+        alert("Please provide a valid date and number of slots.");
+        return;
+    }
+    onSave({ courseId, date, totalSlots, remainingSlots: totalSlots });
+    setDate('');
+    setTotalSlots(10);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="mt-4 border-t border-slate-200 pt-4">
+        <h4 className="font-semibold text-md text-slate-800 mb-2">Add New Slot</h4>
+        <div className="flex flex-col sm:flex-row sm:items-end gap-2">
+            <div className="flex-grow">
+                <label htmlFor={`date-${courseId}`} className="block text-sm font-medium text-slate-700">Date</label>
+                <input id={`date-${courseId}`} type="date" value={date} onChange={e => setDate(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 bg-white"/>
+            </div>
+            <div className="w-full sm:w-auto">
+                <label htmlFor={`slots-${courseId}`} className="block text-sm font-medium text-slate-700">Total Slots</label>
+                <input id={`slots-${courseId}`} type="number" value={totalSlots} onChange={e => setTotalSlots(Number(e.target.value))} required className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 bg-white"/>
+            </div>
+            <button 
+              type="submit" 
+              className="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-md text-sm w-full sm:w-auto disabled:bg-blue-300"
+              disabled={isSaving}
+            >
+              {isSaving ? 'Adding...' : 'Add Slot'}
+            </button>
+        </div>
+    </form>
+  );
+};
+
+export default SessionForm;
+</file>
+
+<file path="components/admin/SlotManager.tsx">
+import React, { useState, useEffect } from 'react';
+import { Course, Session } from '../../types';
+import SessionForm from './SessionForm';
+import ConfirmationModal from '../common/ConfirmationModal';
+
+interface SlotManagerProps {
+    courses: Course[];
+    sessions: Record<string, Session[]>;
+    onSessionSave: (session: Omit<Session, 'id'>) => Promise<void>;
+    onSessionUpdate: (sessionId: string, courseId: string, data: Partial<Session>) => Promise<void>;
+    onSessionDelete: (sessionId: string, courseId: string) => Promise<void>;
+}
+
+const SlotManager: React.FC<SlotManagerProps> = ({ courses, sessions, onSessionSave, onSessionUpdate, onSessionDelete }) => {
+    const [selectedCourseId, setSelectedCourseId] = useState<string | null>(courses[0]?.id || null);
+    const [isSaving, setIsSaving] = useState(false);
+    const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
+
+    const [editingSession, setEditingSession] = useState<Session | null>(null);
+    const [editingDate, setEditingDate] = useState('');
+    const [editingTotalSlots, setEditingTotalSlots] = useState(0);
+    
+    const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
+    const [sessionToDelete, setSessionToDelete] = useState<{ sessionId: string; courseId: string; } | null>(null);
+
+
+    useEffect(() => {
+        if (courses.length > 0 && !courses.find(c => c.id === selectedCourseId)) {
+            setSelectedCourseId(courses[0].id);
+        } else if (courses.length === 0) {
+            setSelectedCourseId(null);
+        }
+    }, [courses, selectedCourseId]);
+
+    const handleEditClick = (session: Session) => {
+        setEditingSession(session);
+        setEditingDate(session.date);
+        setEditingTotalSlots(session.totalSlots);
+    };
+
+    const handleCancelEdit = () => {
+        setEditingSession(null);
+    };
+
+    const handleSaveEdit = async () => {
+        if (!editingSession) return;
+        setIsSaving(true);
+        const bookedSlots = editingSession.totalSlots - editingSession.remainingSlots;
+        if (editingTotalSlots < bookedSlots) {
+            alert(`Total slots cannot be less than the number of booked slots (${bookedSlots}).`);
+            setIsSaving(false);
+            return;
+        }
+
+        const newRemainingSlots = editingSession.remainingSlots + (editingTotalSlots - editingSession.totalSlots);
+
+        await onSessionUpdate(editingSession.id, editingSession.courseId, {
+            date: editingDate,
+            totalSlots: editingTotalSlots,
+            remainingSlots: newRemainingSlots,
+        });
+        setIsSaving(false);
+        setEditingSession(null);
+    };
+
+    const handleDeleteClick = (sessionId: string, courseId: string) => {
+        setSessionToDelete({ sessionId, courseId });
+        setIsConfirmModalOpen(true);
+    };
+
+    const handleConfirmDelete = async () => {
+        if (sessionToDelete) {
+            setDeletingSessionId(sessionToDelete.sessionId);
+            await onSessionDelete(sessionToDelete.sessionId, sessionToDelete.courseId);
+            setDeletingSessionId(null);
+            setIsConfirmModalOpen(false);
+            setSessionToDelete(null);
+        }
+    };
+    
+    const handleCancelDelete = () => {
+        setIsConfirmModalOpen(false);
+        setSessionToDelete(null);
+    };
+
+    const handleSessionSave = async (sessionData: Omit<Session, 'id'>) => {
+        setIsSaving(true);
+        await onSessionSave(sessionData);
+        setIsSaving(false);
+    };
+
+    const selectedCourseSessions = selectedCourseId ? sessions[selectedCourseId] || [] : [];
+
+    return (
+        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md">
+            <h2 className="text-2xl font-bold text-slate-800 mb-4">Slot Management</h2>
+            
+            <ConfirmationModal
+                isOpen={isConfirmModalOpen}
+                onClose={handleCancelDelete}
+                onConfirm={handleConfirmDelete}
+                title="Delete Slot"
+                message="Are you sure you want to delete this slot? This action cannot be undone."
+                confirmText="Delete"
+                isConfirming={!!deletingSessionId}
+            />
+
+            {courses.length > 0 ? (
+                <div>
+                    <label htmlFor="course-select" className="block text-sm font-medium text-slate-700 mb-1">Select Course</label>
+                    <select
+                        id="course-select"
+                        value={selectedCourseId || ''}
+                        onChange={(e) => { setSelectedCourseId(e.target.value); handleCancelEdit(); }}
+                        className="block w-full max-w-md px-3 py-2 border border-slate-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
+                    >
+                        {courses.map(course => (
+                            <option key={course.id} value={course.id}>{course.name}</option>
+                        ))}
+                    </select>
+
+                    {selectedCourseId && (
+                        <div className="mt-6">
+                             <div className="border border-slate-200 rounded-lg">
+                                <div className="p-4">
+                                     <h3 className="text-lg font-semibold text-slate-700">
+                                        Available Slots for "{courses.find(c => c.id === selectedCourseId)?.name}"
+                                    </h3>
+                                </div>
+                                {selectedCourseSessions.length > 0 ? (
+                                    <ul className="divide-y divide-slate-200">
+                                        <li className="hidden sm:grid grid-cols-3 items-center gap-4 px-4 py-2 font-semibold text-sm text-slate-600 bg-slate-50">
+                                            <div className="col-span-1">Date</div>
+                                            <div className="col-span-1">Slots (Remaining / Total)</div>
+                                            <div className="col-span-1 text-right">Actions</div>
+                                        </li>
+                                        {selectedCourseSessions.map(session => (
+                                            <li key={session.id} className="block sm:grid sm:grid-cols-3 items-center gap-4 px-4 py-3">
+                                                <div className="sm:col-span-1 mb-2 sm:mb-0">
+                                                    <span className="font-medium text-slate-600 sm:hidden">Date: </span>
+                                                    {editingSession?.id === session.id ? (
+                                                        <input type="date" value={editingDate} onChange={e => setEditingDate(e.target.value)} className="w-full sm:w-auto border-slate-300 rounded-md shadow-sm text-sm bg-white text-slate-900" />
+                                                    ) : (
+                                                        <span className="font-medium text-slate-900">{session.date}</span>
+                                                    )}
+                                                </div>
+                                                
+                                                <div className="sm:col-span-1 mb-2 sm:mb-0">
+                                                    <span className="font-medium text-slate-600 sm:hidden">Slots: </span>
+                                                    {editingSession?.id === session.id ? (
+                                                        <div className="flex items-center gap-2">
+                                                            <input type="number" value={editingTotalSlots} onChange={e => setEditingTotalSlots(Number(e.target.value))} className="w-24 border-slate-300 rounded-md shadow-sm text-sm bg-white text-slate-900" />
+                                                            <span className="text-sm text-slate-600">total</span>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-sm text-slate-500">
+                                                            <span className="font-semibold text-slate-800">{session.remainingSlots}</span> / {session.totalSlots} slots
+                                                        </span>
+                                                    )}
+                                                </div>
+
+                                                <div className="sm:col-span-1 flex justify-start sm:justify-end items-center gap-2 mt-2 sm:mt-0">
+                                                    {editingSession?.id === session.id ? (
+                                                        <>
+                                                            <button onClick={handleSaveEdit} disabled={isSaving} className="text-sm bg-green-600 hover:bg-green-700 text-white font-semibold py-1 px-3 rounded-md disabled:bg-green-400">{isSaving ? 'Saving...' : 'Save'}</button>
+                                                            <button onClick={handleCancelEdit} className="text-sm bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold py-1 px-3 rounded-md">Cancel</button>
+                                                        </>
+                                                    ) : (
+                                                        <div className="flex items-center gap-4">
+                                                            <button onClick={() => handleEditClick(session)} className="text-indigo-600 hover:text-indigo-800 text-sm font-medium">Edit</button>
+                                                            <button onClick={() => handleDeleteClick(session.id, session.courseId)} className="text-red-600 hover:text-red-800 text-sm font-medium disabled:text-red-400" disabled={deletingSessionId === session.id}>
+                                                                {deletingSessionId === session.id ? 'Deleting...' : 'Delete'}
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="px-4 pb-4 text-slate-500">No slots have been added for this course yet.</p>
+                                )}
+                            </div>
+
+                            <SessionForm 
+                                courseId={selectedCourseId}
+                                onSave={handleSessionSave}
+                                isSaving={isSaving}
+                            />
+                        </div>
+                    )}
+                </div>
+            ) : (
+                <p className="text-slate-500">You must add a course before you can manage slots.</p>
+            )}
+        </div>
+    );
+};
+
+export default SlotManager;
+</file>
+
+<file path="components/common/ConfirmationModal.tsx">
+import React from 'react';
+
+interface ConfirmationModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
+  title: string;
+  message: React.ReactNode;
+  confirmText?: string;
+  isConfirming?: boolean;
+}
+
+const ConfirmationModal: React.FC<ConfirmationModalProps> = ({ isOpen, onClose, onConfirm, title, message, confirmText = 'Confirm', isConfirming = false }) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4" aria-modal="true" role="dialog">
+      <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-md">
+        <div className="sm:flex sm:items-start">
+          <div className="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-red-100 sm:mx-0 sm:h-10 sm:w-10">
+            <svg className="h-6 w-6 text-red-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+          </div>
+          <div className="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left">
+            <h3 className="text-lg leading-6 font-bold text-slate-900" id="modal-title">
+              {title}
+            </h3>
+            <div className="mt-2">
+              <div className="text-sm text-slate-600">
+                {message}
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse gap-3">
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={isConfirming}
+            className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-red-600 text-base font-medium text-white hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 sm:w-auto sm:text-sm disabled:bg-red-400"
+          >
+            {isConfirming ? 'Deleting...' : confirmText}
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isConfirming}
+            className="mt-3 w-full inline-flex justify-center rounded-md border border-slate-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:w-auto sm:text-sm"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ConfirmationModal;
+</file>
+
+<file path="components/common/FirebaseGuard.tsx">
+import React, { useState, useEffect, ReactNode } from 'react';
+import firebaseService from '../../services/firebase';
+import LoadingSpinner from './LoadingSpinner';
+
+interface FirebaseGuardProps {
+  children: ReactNode;
+}
+
+const FirebaseGuard: React.FC<FirebaseGuardProps> = ({ children }) => {
+  const [isInitialized, setIsInitialized] = useState(false);
+
+  useEffect(() => {
+    const initialize = async () => {
+      try {
+        // The singleton instance handles initialization
+        if (firebaseService.db) {
+          setIsInitialized(true);
+        } else {
+          // This case is unlikely with the singleton pattern but is a good fallback
+          console.error("Firebase DB not available");
+        }
+      } catch (error) {
+        console.error("Firebase initialization failed:", error);
+      }
+    };
+
+    initialize();
+  }, []);
+
+  if (!isInitialized) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen bg-gray-100">
+        <LoadingSpinner />
+        <p className="mt-4 text-gray-600">Connecting to services...</p>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+};
+
+export default FirebaseGuard;
+</file>
+
+<file path="components/common/LoadingSpinner.tsx">
+import React from 'react';
+
+const LoadingSpinner: React.FC = () => {
+  return (
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600"></div>
+  );
+};
+
+export default LoadingSpinner;
+</file>
+
+<file path="components/common/Logo.tsx">
+import React from 'react';
+import { Link } from 'react-router-dom';
+
+const Logo: React.FC = () => {
+  return (
+    <Link to="/" aria-label="Back to homepage" className="flex items-center gap-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-indigo-500 rounded-lg p-1 -m-1">
+      <div className="p-2 bg-slate-800 rounded-lg shadow-md group-hover:bg-indigo-600 transition-colors">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 13.5C3 13.5 4.5 11.5 7 11.5C9.5 11.5 11.5 15.5 14 15.5C16.5 15.5 18 13.5 19 12.5" stroke="#A5B4FC" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M3 18.5C3 18.5 4.5 16.5 7 16.5C9.5 16.5 11.5 20.5 14 20.5C16.5 20.5 18 18.5 19 17.5" stroke="#A5B4FC" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M17 3L21 7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M15 5L19 9" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          <path d="M13 7L17 11" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        </svg>
+      </div>
+      <span className="text-2xl font-bold tracking-tight text-slate-900 group-hover:text-indigo-600 transition-colors">
+        LRC Course
+      </span>
+    </Link>
+  );
+};
+
+export default Logo;
+</file>
+
+<file path="components/common/ProtectedRoute.tsx">
+import React, { ReactNode } from 'react';
+import { Navigate } from 'react-router-dom';
+import { useAuth } from '../../hooks/useAuth';
+
+interface ProtectedRouteProps {
+  children: ReactNode;
+}
+
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+  const { currentUser } = useAuth();
+
+  if (!currentUser) {
+    return <Navigate to="/admin/login" />;
+  }
+
+  return <>{children}</>;
+};
+
+export default ProtectedRoute;
+</file>
+
+<file path="components/common/TermsModal.tsx">
+import React, { useState, useRef, UIEvent, useEffect } from 'react';
+
+interface TermsModalProps {
+  terms: string;
+  isOpen: boolean;
+  onClose: () => void;
+  onAgree: () => void;
+}
+
+const TermsModal: React.FC<TermsModalProps> = ({ terms, isOpen, onClose, onAgree }) => {
+  const [hasScrolledToEnd, setHasScrolledToEnd] = useState(false);
+  const [isAgreed, setIsAgreed] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    // When the modal opens, check if scrolling is necessary.
+    if (isOpen) {
+      // Reset state for when the modal is re-opened
+      setHasScrolledToEnd(false);
+      setIsAgreed(false);
+
+      // Use a timeout to allow the browser to render and calculate dimensions
+      setTimeout(() => {
+        const scrollElement = scrollRef.current;
+        if (scrollElement) {
+          const isScrollable = scrollElement.scrollHeight > scrollElement.clientHeight;
+          // If it's not scrollable, the user can agree immediately.
+          if (!isScrollable) {
+            setHasScrolledToEnd(true);
+          }
+        }
+      }, 100);
+    }
+  }, [isOpen]);
+
+  const handleScroll = (event: UIEvent<HTMLDivElement>) => {
+    if (hasScrolledToEnd) return; // Don't re-run if already at the end
+    const { scrollTop, scrollHeight, clientHeight } = event.currentTarget;
+    // Check if user has scrolled to the bottom (with a small tolerance)
+    if (scrollHeight - scrollTop <= clientHeight + 5) {
+      setHasScrolledToEnd(true);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
+      <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg flex flex-col max-h-[80vh]">
+        <h2 className="text-2xl font-bold mb-4 text-slate-900 flex-shrink-0">Terms & Conditions</h2>
+        <div
+          ref={scrollRef}
+          onScroll={handleScroll}
+          className="flex-grow overflow-y-auto border border-slate-200 bg-slate-50 p-4 rounded-md text-sm text-slate-700"
+        >
+          <p className="whitespace-pre-wrap">{terms}</p>
+        </div>
+        <div className="mt-4 flex-shrink-0">
+          <label className={`flex items-center space-x-3 cursor-pointer transition-colors ${!hasScrolledToEnd ? 'text-slate-400' : 'text-slate-700'}`}>
+            <input
+              type="checkbox"
+              checked={isAgreed}
+              onChange={e => setIsAgreed(e.target.checked)}
+              disabled={!hasScrolledToEnd}
+              className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded disabled:cursor-not-allowed"
+            />
+            <span className={`text-sm font-medium ${!hasScrolledToEnd ? 'text-slate-400' : 'text-slate-700'}`}>
+                {hasScrolledToEnd ? 'I agree to the terms and conditions' : 'Please scroll to the end to agree'}
+            </span>
+          </label>
+        </div>
+        <div className="flex justify-end space-x-4 pt-4 mt-4 border-t border-slate-200 flex-shrink-0">
+          <button type="button" onClick={onClose} className="bg-slate-200 hover:bg-slate-300 text-slate-800 font-bold py-2 px-4 rounded-md">
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onAgree}
+            disabled={!isAgreed}
+            className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md disabled:bg-slate-400 disabled:cursor-not-allowed"
+          >
+            Agree & Add to Cart
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default TermsModal;
+</file>
+
+<file path="context/AuthContext.tsx">
+import React, { createContext, useState, useEffect, ReactNode } from 'react';
+import { User, onAuthStateChanged } from 'firebase/auth';
+import { auth } from '../services/firebase';
+import LoadingSpinner from '../components/common/LoadingSpinner';
+
+interface AuthContextType {
+  currentUser: User | null;
+  loading: boolean;
+}
+
+export const AuthContext = createContext<AuthContextType>({ currentUser: null, loading: true });
+
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, user => {
+      setCurrentUser(user);
+      setLoading(false);
+    });
+
+    return unsubscribe;
+  }, []);
+
+  if (loading) {
+    return (
+        <div className="flex items-center justify-center h-screen">
+            <LoadingSpinner />
+        </div>
+    );
+  }
+
+  return (
+    <AuthContext.Provider value={{ currentUser, loading }}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+</file>
+
+<file path="context/CartContext.tsx">
+import React, { createContext, useState, useEffect, ReactNode } from 'react';
+import { CartItem } from '../types';
+
+interface CartContextType {
+  items: CartItem[];
+  addItem: (item: CartItem) => void;
+  removeItem: (cartId: string) => void;
+  updateItemQuantity: (cartId: string, quantity: number) => void;
+  clearCart: () => void;
+  totalAmount: number;
+}
+
+export const CartContext = createContext<CartContextType | undefined>(undefined);
+
+export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const [items, setItems] = useState<CartItem[]>(() => {
+    try {
+        const localData = localStorage.getItem('ggp-cart');
+        return localData ? JSON.parse(localData) : [];
+    } catch (error) {
+        console.error("Could not parse cart data from localStorage", error);
+        return [];
+    }
+  });
+
+  useEffect(() => {
+    localStorage.setItem('ggp-cart', JSON.stringify(items));
+  }, [items]);
+
+  const addItem = (itemToAdd: CartItem) => {
+    setItems(prevItems => {
+        const existingItem = prevItems.find(i => i.cartId === itemToAdd.cartId);
+        if (existingItem) {
+            // Item already in cart, update its quantity
+            return prevItems.map(i =>
+                i.cartId === itemToAdd.cartId
+                    ? { ...i, quantity: i.quantity + itemToAdd.quantity }
+                    : i
+            );
+        }
+        // New item, add to cart
+        return [...prevItems, itemToAdd];
+    });
+  };
+
+  const removeItem = (cartId: string) => {
+    setItems(prevItems => prevItems.filter(item => item.cartId !== cartId));
+  };
+
+  const updateItemQuantity = (cartId: string, quantity: number) => {
+    setItems(prevItems => {
+        if (quantity <= 0) {
+            // If quantity is 0 or less, remove the item
+            return prevItems.filter(item => item.cartId !== cartId);
+        }
+        return prevItems.map(item =>
+            item.cartId === cartId ? { ...item, quantity } : item
+        );
+    });
+  };
+
+  const clearCart = () => {
+    setItems([]);
+  };
+  
+  const totalAmount = items.reduce((total, item) => total + (item.price * item.quantity), 0);
+
+  return (
+    <CartContext.Provider value={{ items, addItem, removeItem, updateItemQuantity, clearCart, totalAmount }}>
+      {children}
+    </CartContext.Provider>
+  );
+};
+</file>
+
+<file path="functions/index.js">
+const functions = require("firebase-functions");
+const admin = require("firebase-admin");
+const axios = require("axios");
+
+admin.initializeApp();
+const db = admin.firestore();
+
+// --- Loyverse Credentials ---
+const LOYVERSE_TOKEN = "d9d14fd02ac34292ab50e221da50ddb3";
+const LOYVERSE_STORE_ID = "7611fff5-5af4-43e4-8758-3f06a1090eed";
+const LOYVERSE_PAYMENT_ID = "df4f339c-c806-4cf0-83c9-43ef624a78ac";
+
+const loyverseApi = axios.create({
+  baseURL: "https://api.loyverse.com/v1.0",
+  headers: {
+    "Authorization": `Bearer ${LOYVERSE_TOKEN}`,
+  },
+});
+
+/**
+ * Logs synchronization errors to a dedicated Firestore collection.
+ * @param {string} bookingId - The ID of the booking that failed.
+ * @param {any} error - The error object or message.
+ * @param {string} stage - The stage where the error occurred (e.g., 'getVariant', 'createReceipt').
+ */
+const logSyncError = async (bookingId, error, stage) => {
+  console.error(`Loyverse sync failed for booking ${bookingId} at stage ${stage}:`, error);
+  await db.collection("failed_sync").add({
+    bookingId,
+    stage,
+    errorMessage: error.message || "An unknown error occurred.",
+    errorDetails: error.response ? error.response.data : error.toString(),
+    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+  });
+};
+
+/**
+ * A callable function to finalize a booking, decrement slots, and sync with Loyverse.
+ */
+exports.syncAndFinalizeBooking = functions.https.onCall(async (data, context) => {
+  const {bookingId} = data;
+  if (!bookingId) {
+    throw new functions.https.HttpsError("invalid-argument", "The function must be called with a 'bookingId'.");
+  }
+
+  const bookingRef = db.collection("bookings").doc(bookingId);
+  const bookingDoc = await bookingRef.get();
+
+  if (!bookingDoc.exists) {
+    throw new functions.https.HttpsError("not-found", `Booking with ID ${bookingId} not found.`);
+  }
+
+  const bookingData = bookingDoc.data();
+
+  // --- Step 1: Sync with Loyverse (and collect variant IDs) ---
+  const lineItemsForLoyverse = [];
+  let syncSuccessful = true;
+
+  for (const item of bookingData.items) {
+    try {
+      const courseDoc = await db.collection("courses").doc(item.courseId).get();
+      if (!courseDoc.exists || !courseDoc.data().sku) {
+        throw new Error(`Course ${item.courseId} not found or has no SKU.`);
+      }
+      const sku = courseDoc.data().sku;
+
+      const variantResponse = await loyverseApi.get(`/variants?sku=${sku}`);
+      if (!variantResponse.data.variants || variantResponse.data.variants.length === 0) {
+        throw new Error(`No Loyverse variant found for SKU: ${sku}`);
+      }
+      const variantId = variantResponse.data.variants[0].id;
+
+      lineItemsForLoyverse.push({
+        variant_id: variantId,
+        quantity: item.quantity,
+        price: item.price,
+        line_total_gross: item.price * item.quantity,
+      });
+    } catch (error) {
+      await logSyncError(bookingId, error, "getVariant");
+      syncSuccessful = false;
+      // We continue to process the booking internally even if sync fails
+    }
+  }
+
+  // If we successfully found all variants, create the receipt
+  if (syncSuccessful && lineItemsForLoyverse.length > 0) {
+    try {
+      const receiptPayload = {
+        store_id: LOYVERSE_STORE_ID,
+        source: "API",
+        line_items: lineItemsForLoyverse,
+        payments: [{
+          payment_type_id: LOYVERSE_PAYMENT_ID,
+          amount: bookingData.totalAmount,
+        }],
+      };
+      await loyverseApi.post("/receipts", receiptPayload);
+      functions.logger.info(`Successfully created Loyverse receipt for booking ${bookingId}`);
+    } catch (error) {
+      await logSyncError(bookingId, error, "createReceipt");
+      // The booking will still be marked as 'paid' internally.
+    }
+  }
+
+
+  // --- Step 2: Finalize booking in Firestore within a transaction ---
+  try {
+    await db.runTransaction(async (transaction) => {
+      // a. Update the booking status to 'paid'
+      transaction.update(bookingRef, {paymentStatus: "paid"});
+
+      // b. Decrement the remaining slots for each session
+      for (const item of bookingData.items) {
+        const sessionRef = db.collection("sessions").doc(item.sessionId);
+        const sessionDoc = await transaction.get(sessionRef);
+        if (!sessionDoc.exists()) {
+          throw new Error(`Session ${item.sessionId} not found!`);
+        }
+        const currentSlots = sessionDoc.data().remainingSlots;
+        if (currentSlots < item.quantity) {
+          throw new functions.https.HttpsError("aborted", `Not enough slots for ${item.courseName}. Requested: ${item.quantity}, Available: ${currentSlots}`);
+        }
+        transaction.update(sessionRef, {remainingSlots: currentSlots - item.quantity});
+      }
+    });
+    functions.logger.info(`Transaction for booking ${bookingId} committed successfully.`);
+    return {status: "success", bookingId};
+  } catch (error) {
+    functions.logger.error("Firestore transaction failed:", error);
+    // If the transaction fails, update the booking status to 'failed'
+    await bookingRef.update({paymentStatus: "failed"});
+    // Re-throw the specific error from the transaction (e.g., not enough slots)
+    if (error instanceof functions.https.HttpsError) {
+        throw error;
+    }
+    throw new functions.https.HttpsError("aborted", "Booking failed due to an internal error.", error);
+  }
+});
+</file>
+
+<file path="functions/package.json">
+{
+  "name": "ggp-consultancy-functions",
+  "description": "Cloud Functions for GGP Consultancy Booking System",
+  "scripts": {
+    "serve": "firebase emulators:start --only functions",
+    "shell": "firebase functions:shell",
+    "start": "npm run shell",
+    "deploy": "firebase deploy --only functions",
+    "logs": "firebase functions:log"
+  },
+  "engines": {
+    "node": "18"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "axios": "^1.7.2",
+    "firebase-admin": "^12.0.0",
+    "firebase-functions": "^5.0.0"
+  },
+  "devDependencies": {
+    "firebase-functions-test": "^3.1.0"
+  },
+  "private": true
+}
+</file>
+
+<file path="hooks/useAuth.ts">
+import { useContext } from 'react';
+import { AuthContext } from '../context/AuthContext';
+
+export const useAuth = () => {
+  return useContext(AuthContext);
+};
+</file>
+
+<file path="hooks/useCart.ts">
+import { useContext } from 'react';
+import { CartContext } from '../context/CartContext';
+
+export const useCart = () => {
+  const context = useContext(CartContext);
+  if (context === undefined) {
+    throw new Error('useCart must be used within a CartProvider');
+  }
+  return context;
+};
+</file>
+
+<file path="index.html">
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-T" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LRC Course Booking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  <script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "firebase/": "https://esm.sh/firebase@^12.7.0/",
+    "react-router-dom": "https://esm.sh/react-router-dom@^7.11.0"
+  }
+}
+</script>
+<link rel="stylesheet" href="/index.css">
+</head>
+  <body class="bg-slate-50">
+    <div id="root"></div>
+  <script type="module" src="/index.tsx"></script>
+</body>
+</html>
+</file>
+
+<file path="index.tsx">
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+
+const rootElement = document.getElementById('root');
+if (!rootElement) {
+  throw new Error("Could not find root element to mount to");
+}
+
+const root = ReactDOM.createRoot(rootElement);
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+</file>
+
+<file path="metadata.json">
+{
+  "name": "LRC Course",
+  "description": "An e-commerce booking system for Lake Recreation Center Putrajaya courses, built with React and Firebase. Features separate admin and client interfaces for managing courses, sessions, and bookings.",
+  "requestFramePermissions": []
+}
+</file>
+
+<file path="package.json">
+{
+  "name": "lrc-course",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "firebase": "^12.7.0",
+    "react-router-dom": "^7.11.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0"
+  }
+}
+</file>
+
+<file path="pages/AdminDashboard.tsx">
+import React, { useState, useEffect, useCallback } from 'react';
+import { Course, Session, Category } from '../types';
+import { getCourses, getSessionsForCourse, addCourse, updateCourse, deleteCourse, addSession, updateSession, deleteSession, getCategories, addCategory, updateCategory, deleteCategory } from '../services/firestoreService';
+import { auth } from '../services/firebase';
+import { signOut } from 'firebase/auth';
+import { useNavigate } from 'react-router-dom';
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import CourseManager from '../components/admin/CourseManager';
+import SlotManager from '../components/admin/SlotManager';
+import CategoryManager from '../components/admin/CategoryManager';
+import BookingsManagement from '../components/admin/BookingsManagement';
+import Logo from '../components/common/Logo';
+
+type AdminView = 'courses' | 'slots' | 'categories' | 'bookings';
+
+const NavButton: React.FC<{
+    label: string;
+    view: AdminView;
+    activeView: AdminView;
+    onClick: () => void;
+    children: React.ReactNode;
+}> = ({ label, view, activeView, onClick, children }) => (
+    <li>
+        <button
+            onClick={onClick}
+            className={`w-full text-left p-3 rounded-md font-medium transition-colors flex items-center gap-3 ${
+                activeView === view
+                    ? 'bg-indigo-100 text-indigo-700'
+                    : 'text-slate-600 hover:bg-slate-100'
+            }`}
+        >
+            {children}
+            {label}
+        </button>
+    </li>
+);
+
+const AdminDashboard: React.FC = () => {
+    const [courses, setCourses] = useState<Course[]>([]);
+    const [sessions, setSessions] = useState<Record<string, Session[]>>({});
+    const [categories, setCategories] = useState<Category[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+    const [activeView, setActiveView] = useState<AdminView>('courses');
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    const navigate = useNavigate();
+
+    const fetchAllData = useCallback(async () => {
+        setIsLoading(true);
+        try {
+            const [coursesData, categoriesData] = await Promise.all([getCourses(), getCategories()]);
+            setCourses(coursesData);
+            setCategories(categoriesData);
+            
+            const sessionsData: Record<string, Session[]> = {};
+            for (const course of coursesData) {
+                sessionsData[course.id] = await getSessionsForCourse(course.id);
+            }
+            setSessions(sessionsData);
+        } catch (error) {
+            console.error("Failed to fetch data:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchAllData();
+    }, [fetchAllData]);
+
+    const handleSignOut = async () => {
+        await signOut(auth);
+        navigate('/admin/login');
+    };
+
+    const handleViewChange = (view: AdminView) => {
+        setActiveView(view);
+        setIsSidebarOpen(false); // Close sidebar on navigation
+    }
+    
+    const handleCourseSave = async (course: Omit<Course, 'id'> | Course) => {
+        if ('id' in course) {
+            await updateCourse(course.id, course);
+        } else {
+            await addCourse(course);
+        }
+        await fetchAllData();
+    };
+
+    const handleCourseDelete = async (courseId: string) => {
+        await deleteCourse(courseId);
+        await fetchAllData();
+    };
+
+    const handleSessionSave = async (session: Omit<Session, 'id'>) => {
+        await addSession(session);
+        const updatedSessions = await getSessionsForCourse(session.courseId);
+        setSessions(prev => ({ ...prev, [session.courseId]: updatedSessions }));
+    };
+
+    const handleSessionUpdate = async (sessionId: string, courseId: string, sessionData: Partial<Session>) => {
+        await updateSession(sessionId, sessionData);
+        const updatedSessions = await getSessionsForCourse(courseId);
+        setSessions(prev => ({ ...prev, [courseId]: updatedSessions }));
+    };
+
+    const handleSessionDelete = async (sessionId: string, courseId: string) => {
+        await deleteSession(sessionId);
+        const updatedSessions = await getSessionsForCourse(courseId);
+        setSessions(prev => ({ ...prev, [courseId]: updatedSessions }));
+    };
+
+    const handleCategoryAdd = async (category: Omit<Category, 'id'>) => {
+        await addCategory(category);
+        const updatedCategories = await getCategories();
+        setCategories(updatedCategories);
+    };
+    
+    const handleCategoryUpdate = async (categoryId: string, categoryData: Partial<Category>) => {
+        await updateCategory(categoryId, categoryData);
+        const updatedCategories = await getCategories();
+        setCategories(updatedCategories);
+    };
+
+    const handleCategoryDelete = async (categoryId: string) => {
+        await deleteCategory(categoryId);
+        const updatedCategories = await getCategories();
+        setCategories(updatedCategories);
+    };
+
+    return (
+        <div className="relative min-h-screen md:flex bg-slate-50 text-slate-900">
+            {/* Overlay for mobile */}
+            <div 
+                className={`fixed inset-0 bg-black bg-opacity-50 z-20 transition-opacity md:hidden ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                onClick={() => setIsSidebarOpen(false)}
+            ></div>
+
+            <aside className={`fixed inset-y-0 left-0 w-64 bg-white text-slate-800 border-r border-slate-200 flex flex-col transform ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} md:relative md:translate-x-0 transition-transform duration-300 ease-in-out z-30`}>
+                <div className="p-4 border-b border-slate-200">
+                    <Logo />
+                </div>
+                <nav className="p-2 flex-grow">
+                    <ul className="space-y-1">
+                        <NavButton label="Courses" view="courses" activeView={activeView} onClick={() => handleViewChange('courses')}>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v11.494m-9-5.747h18" /></svg>
+                        </NavButton>
+                        <NavButton label="Slots" view="slots" activeView={activeView} onClick={() => handleViewChange('slots')}>
+                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                        </NavButton>
+                        <NavButton label="Categories" view="categories" activeView={activeView} onClick={() => handleViewChange('categories')}>
+                           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
+                        </NavButton>
+                         <NavButton label="Bookings" view="bookings" activeView={activeView} onClick={() => handleViewChange('bookings')}>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+                        </NavButton>
+                    </ul>
+                </nav>
+            </aside>
+            <main className="flex-1 flex flex-col overflow-hidden">
+                <header className="flex justify-between items-center p-4 bg-white border-b border-slate-200">
+                    <button className="md:hidden text-slate-500 hover:text-slate-800" onClick={() => setIsSidebarOpen(true)}>
+                         <svg className="h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+                        </svg>
+                    </button>
+                    <h1 className="text-2xl font-bold text-slate-800 capitalize">{activeView.replace('-', ' ')}</h1>
+                    <button onClick={handleSignOut} className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded-md transition duration-300 shadow-sm">
+                        Sign Out
+                    </button>
+                </header>
+                <div className="flex-1 overflow-x-hidden overflow-y-auto p-4 sm:p-6 lg:p-8">
+                    {isLoading ? (
+                        <div className="flex justify-center items-center h-full"><LoadingSpinner /></div>
+                    ) : (
+                        <>
+                            {activeView === 'courses' && (
+                                <CourseManager
+                                    courses={courses}
+                                    categories={categories}
+                                    onCourseSave={handleCourseSave}
+                                    onCourseDelete={handleCourseDelete}
+                                />
+                            )}
+                            {activeView === 'slots' && (
+                                <SlotManager 
+                                    courses={courses}
+                                    sessions={sessions}
+                                    onSessionSave={handleSessionSave}
+                                    onSessionUpdate={handleSessionUpdate}
+                                    onSessionDelete={handleSessionDelete}
+                                />
+                            )}
+                            {activeView === 'categories' && (
+                                <CategoryManager
+                                    categories={categories}
+                                    onCategoryAdd={handleCategoryAdd}
+                                    onCategoryUpdate={handleCategoryUpdate}
+                                    onCategoryDelete={handleCategoryDelete}
+                                />
+                            )}
+                            {activeView === 'bookings' && <BookingsManagement />}
+                        </>
+                    )}
+                </div>
+            </main>
+        </div>
+    );
+};
+
+export default AdminDashboard;
+</file>
+
+<file path="pages/AdminLogin.tsx">
+import React, { useState, FormEvent } from 'react';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { useNavigate } from 'react-router-dom';
+import { auth } from '../services/firebase';
+import Logo from '../components/common/Logo';
+
+const AdminLogin: React.FC = () => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
+
+  const handleLogin = async (e: FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      navigate('/admin/dashboard');
+    } catch (err) {
+      setError('Failed to log in. Please check your credentials.');
+      console.error(err);
+    } finally {
+        setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8 p-6 sm:p-10 bg-white rounded-xl shadow-lg">
+        <div className="flex flex-col items-center">
+           <Logo />
+           <h2 className="mt-6 text-center text-2xl font-bold text-slate-900">
+            Admin Portal
+          </h2>
+          <p className="mt-2 text-center text-sm text-slate-600">
+            Sign in to manage your courses and bookings.
+          </p>
+        </div>
+        <form className="mt-8 space-y-6" onSubmit={handleLogin}>
+          <div className="rounded-md shadow-sm space-y-4">
+            <div>
+              <label htmlFor="email-address" className="sr-only">Email address</label>
+              <input
+                id="email-address"
+                name="email"
+                type="email"
+                autoComplete="email"
+                required
+                className="appearance-none relative block w-full px-3 py-3 border border-slate-300 placeholder-slate-500 text-slate-900 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white"
+                placeholder="Email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div>
+              <label htmlFor="password" className="sr-only">Password</label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                className="appearance-none relative block w-full px-3 py-3 border border-slate-300 placeholder-slate-500 text-slate-900 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white"
+                placeholder="Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {error && <p className="text-red-500 text-sm text-center">{error}</p>}
+
+          <div>
+            <button
+              type="submit"
+              disabled={loading}
+              className="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:bg-indigo-400 transition-colors"
+            >
+              {loading ? 'Signing in...' : 'Sign in'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default AdminLogin;
+</file>
+
+<file path="pages/CartPage.tsx">
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useCart } from '../hooks/useCart';
+import { addBooking } from '../services/firestoreService';
+import { functions } from '../services/firebase';
+import { httpsCallable } from 'firebase/functions';
+import { BookingItem } from '../types';
+import Logo from '../components/common/Logo';
+
+const isWithin7Days = (dateString: string): boolean => {
+    const sessionDate = new Date(dateString);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Normalize today to the start of the day
+    const sevenDaysFromNow = new Date();
+    sevenDaysFromNow.setDate(today.getDate() + 7);
+    return sessionDate >= today && sessionDate <= sevenDaysFromNow;
+};
+
+const CartPage: React.FC = () => {
+    const { items, removeItem, totalAmount, clearCart, updateItemQuantity } = useCart();
+    const navigate = useNavigate();
+
+    const [customerFullName, setCustomerFullName] = useState('');
+    const [customerPhone, setCustomerPhone] = useState('');
+    const [customerEmail, setCustomerEmail] = useState('');
+    const [isProcessing, setIsProcessing] = useState(false);
+    const [error, setError] = useState<string | null>(null);
+
+    const handleCheckout = async () => {
+        if (!customerFullName || !customerEmail || !customerPhone) {
+            setError("Please fill in your Full Name, Email, and Phone Number.");
+            return;
+        }
+        setError(null);
+        setIsProcessing(true);
+
+        const bookingItems: BookingItem[] = items.map(item => ({
+            courseId: item.courseId,
+            courseName: item.courseName,
+            sessionId: item.sessionId,
+            sessionDate: item.sessionDate,
+            price: item.price,
+            category: item.category,
+            quantity: item.quantity,
+        }));
+
+        try {
+            // 1. Create the initial booking document with 'pending' status
+            const bookingId = await addBooking({
+                customerFullName,
+                customerPhone,
+                customerEmail,
+                items: bookingItems,
+                totalAmount,
+                paymentStatus: 'pending',
+                bookingDate: new Date(),
+            });
+
+            // 2. Call the secure cloud function to process payment, sync to Loyverse, and finalize booking
+            const syncAndFinalizeBooking = httpsCallable(functions, 'syncAndFinalizeBooking');
+            await syncAndFinalizeBooking({ bookingId });
+            
+            // 3. If successful, navigate to confirmation page
+            const bookingDetails = { customerFullName, totalAmount, items: bookingItems };
+            clearCart();
+            navigate('/confirmation', { state: bookingDetails });
+
+        } catch (e: any) {
+            console.error("Checkout failed:", e);
+            setError(e.message || "An error occurred during checkout. One or more slots may no longer be available. Please try again.");
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    return (
+        <div className="min-h-screen bg-slate-50">
+            <header className="bg-white shadow-sm">
+                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+                    <Logo />
+                </div>
+            </header>
+            <main className="max-w-6xl mx-auto p-4 sm:p-6 lg:p-8">
+                <h1 className="text-3xl font-bold text-slate-900 mb-8">Your Shopping Cart</h1>
+                {items.length === 0 ? (
+                    <div className="text-center bg-white p-12 rounded-xl shadow-md">
+                        <h2 className="text-2xl font-bold text-slate-800">Your cart is empty</h2>
+                        <p className="text-slate-500 mt-2 mb-6">Looks like you haven't added any courses yet.</p>
+                        <Link to="/" className="bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 transition-transform hover:scale-105 inline-block">
+                            Browse Courses
+                        </Link>
+                    </div>
+                ) : (
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+                        <div className="lg:col-span-2 bg-white p-4 sm:p-6 rounded-xl shadow-md space-y-4">
+                             <h2 className="text-xl font-semibold text-slate-800 border-b pb-4">Order Summary</h2>
+                            <ul className="divide-y divide-slate-200">
+                                {items.map(item => (
+                                    <li key={item.cartId} className="py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                        <div className="flex-grow w-full">
+                                            <p className="font-semibold text-slate-800">{item.courseName}</p>
+                                            <p className="text-sm text-slate-500">Date: {item.sessionDate}</p>
+                                            <div className="flex items-center gap-2 mt-2">
+                                                <label htmlFor={`qty-${item.cartId}`} className="text-sm font-medium text-slate-600">Qty:</label>
+                                                <input
+                                                    id={`qty-${item.cartId}`}
+                                                    type="number"
+                                                    value={item.quantity}
+                                                    onChange={(e) => updateItemQuantity(item.cartId, parseInt(e.target.value, 10) || 1)}
+                                                    min="1"
+                                                    className="w-16 px-2 py-1 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-1 focus:ring-indigo-500 text-sm"
+                                                />
+                                            </div>
+                                        </div>
+                                        <div className="flex items-center gap-4 mt-2 sm:mt-0 self-end sm:self-center">
+                                            {isWithin7Days(item.sessionDate) && (
+                                                <span className="text-xs font-semibold bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">Upcoming</span>
+                                            )}
+                                            <div className="text-right">
+                                                <p className="font-semibold text-slate-800">RM{(item.price * item.quantity).toFixed(2)}</p>
+                                                {item.quantity > 1 && <p className="text-xs text-slate-500">({item.quantity} x RM{item.price.toFixed(2)})</p>}
+                                            </div>
+                                            <button onClick={() => removeItem(item.cartId)} className="text-red-500 hover:text-red-700 text-sm font-medium">Remove</button>
+                                        </div>
+                                    </li>
+                                ))}
+                            </ul>
+                        </div>
+                        <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md lg:sticky top-28">
+                            <h2 className="text-xl font-semibold text-slate-800 mb-4 border-b pb-4">Checkout Details</h2>
+                            <div className="space-y-4 mb-6">
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700">Full Name</label>
+                                    <input type="text" value={customerFullName} onChange={e => setCustomerFullName(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-900"/>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700">Phone Number</label>
+                                    <input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-900"/>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-slate-700">Email Address</label>
+                                    <input type="email" value={customerEmail} onChange={e => setCustomerEmail(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-900"/>
+                                    <p className="mt-2 text-xs text-slate-500">
+                                        Please ensure your email is valid. Your indemnity form and payment receipt will be sent here.
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="border-t border-slate-200 pt-4">
+                                <div className="flex justify-between font-bold text-lg text-slate-900 mb-4">
+                                    <span>Total:</span>
+                                    <span>RM{totalAmount.toFixed(2)}</span>
+                                </div>
+                                {error && <p className="text-red-500 text-sm text-center mb-2">{error}</p>}
+                                <button
+                                    onClick={handleCheckout}
+                                    disabled={isProcessing}
+                                    className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out hover:bg-green-700 disabled:bg-slate-400 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+                                >
+                                    {isProcessing ? 'Processing Payment...' : 'Proceed to Payment'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </main>
+        </div>
+    );
+};
+
+export default CartPage;
+</file>
+
+<file path="pages/OrderConfirmationPage.tsx">
+import React from 'react';
+import { useLocation, Link, Navigate } from 'react-router-dom';
+import { BookingItem } from '../types';
+import Logo from '../components/common/Logo';
+
+interface ConfirmationState {
+    customerFullName: string;
+    totalAmount: number;
+    items: BookingItem[];
+}
+
+const OrderConfirmationPage: React.FC = () => {
+    const location = useLocation();
+    const state = location.state as ConfirmationState | null;
+
+    if (!state) {
+        // Redirect to home if the page is accessed directly without state
+        return <Navigate to="/" />;
+    }
+
+    const { customerFullName, totalAmount, items } = state;
+
+    return (
+        <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4">
+            <main className="max-w-2xl w-full bg-white p-6 sm:p-8 rounded-2xl shadow-xl text-center">
+                 <div className="flex justify-center mb-4">
+                    <Logo />
+                </div>
+                <div className="mx-auto mb-4 h-16 w-16 flex items-center justify-center rounded-full bg-green-100">
+                    <svg className="h-8 w-8 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                </div>
+                <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Thank You, {customerFullName}!</h1>
+                <p className="text-slate-600 mt-2">Your booking has been confirmed.</p>
+                <p className="text-slate-600">A confirmation email has been sent to your address.</p>
+
+                <div className="text-left bg-slate-50 border border-slate-200 rounded-lg p-4 sm:p-6 my-8">
+                    <h2 className="text-lg font-semibold text-slate-800 mb-4">Booking Summary</h2>
+                    <ul className="divide-y divide-slate-200">
+                        {items.map((item, index) => (
+                            <li key={index} className="py-3 flex justify-between items-start">
+                                <div className="flex-grow">
+                                    <p className="font-semibold text-slate-800">{item.courseName}</p>
+                                    <p className="text-sm text-slate-500">Date: {item.sessionDate}</p>
+                                    <p className="text-sm text-slate-500">Quantity: {item.quantity}</p>
+                                </div>
+                                <div className="text-right flex-shrink-0 ml-4">
+                                     <p className="font-semibold text-slate-800">RM{(item.price * item.quantity).toFixed(2)}</p>
+                                     {item.quantity > 1 && <p className="text-xs text-slate-500">(RM{item.price.toFixed(2)} each)</p>}
+                                </div>
+                            </li>
+                        ))}
+                    </ul>
+                    <div className="border-t border-slate-200 mt-4 pt-4 flex justify-between font-bold text-lg text-slate-900">
+                        <span>Total Paid:</span>
+                        <span>RM{totalAmount.toFixed(2)}</span>
+                    </div>
+                </div>
+
+                <Link 
+                    to="/" 
+                    className="inline-block w-full sm:w-auto bg-indigo-600 text-white font-bold py-3 px-8 rounded-lg transition duration-300 ease-in-out hover:bg-indigo-700 shadow-md hover:shadow-lg"
+                >
+                    Back to Home
+                </Link>
+            </main>
+        </div>
+    );
+};
+
+export default OrderConfirmationPage;
+</file>
+
+<file path="pages/Storefront.tsx">
+import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Course, Session, CartItem } from '../types';
+import { getCourses, getSessionsForCourse } from '../services/firestoreService';
+import { useCart } from '../hooks/useCart';
+import LoadingSpinner from '../components/common/LoadingSpinner';
+import TermsModal from '../components/common/TermsModal';
+import Logo from '../components/common/Logo';
+
+const StorefrontHeader: React.FC = () => {
+    const { items } = useCart();
+    const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+    return (
+        <header className="bg-white/80 backdrop-blur-md shadow-sm sticky top-0 z-20">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+                 <Logo />
+                <div className="flex items-center gap-2 sm:gap-4">
+                    <Link to="/cart" className="relative flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 px-3 sm:px-4 rounded-lg transition-colors duration-300">
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 S17 21 17 21a2 2 0 100-4zM7.707 15.293a1 1 0 00-1.414 1.414L10 20.414l8.293-8.293a1 1 0 00-1.414-1.414L10 17.586l-3.293-3.293zM15 11H9m6 0a2 2 0 012 2v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6a2 2 0 012-2h6z"/></svg>
+                        <span className="hidden sm:inline">Cart</span>
+                        {totalItems > 0 && (
+                            <span className="absolute -top-2 -right-2 bg-indigo-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center ring-2 ring-white">
+                                {totalItems}
+                            </span>
+                        )}
+                    </Link>
+                    <Link to="/admin/login" className="bg-slate-600 hover:bg-slate-700 text-white font-bold py-2 px-3 sm:px-4 rounded-lg transition duration-300 text-sm sm:text-base">
+                        Admin
+                    </Link>
+                </div>
+            </div>
+        </header>
+    );
+}
+
+const CourseBookingCard: React.FC<{ course: Course }> = ({ course }) => {
+  const { items, addItem } = useCart();
+  const [sessions, setSessions] = useState<Session[]>([]);
+  const [isLoadingSessions, setIsLoadingSessions] = useState(true);
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null);
+  const [quantity, setQuantity] = useState(1);
+  const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
+  const [isFullyBooked, setIsFullyBooked] = useState(false);
+
+  useEffect(() => {
+    const fetchSessions = async () => {
+      setIsLoadingSessions(true);
+      const sessionsData = await getSessionsForCourse(course.id);
+      setSessions(sessionsData);
+      const firstAvailableSession = sessionsData.find(s => s.remainingSlots > 0);
+      if (firstAvailableSession) {
+        setSelectedSessionId(firstAvailableSession.id);
+        setIsFullyBooked(false);
+      } else {
+        setSelectedSessionId(null);
+        setIsFullyBooked(sessionsData.length > 0);
+      }
+      setIsLoadingSessions(false);
+    };
+    fetchSessions();
+  }, [course.id]);
+
+  useEffect(() => {
+    setQuantity(1); // Reset quantity when session changes
+  }, [selectedSessionId]);
+
+
+  const handleAgreeAndAddToCart = () => {
+    const selectedSession = sessions.find(s => s.id === selectedSessionId);
+    if (!selectedSession) return;
+
+    const cartItem: CartItem = {
+        cartId: `${course.id}-${selectedSession.id}`,
+        courseId: course.id,
+        courseName: course.name,
+        sessionId: selectedSession.id,
+        sessionDate: selectedSession.date,
+        price: course.price,
+        category: course.category,
+        quantity: quantity,
+    };
+    addItem(cartItem);
+    setIsTermsModalOpen(false);
+  };
+
+  const selectedSession = sessions.find(s => s.id === selectedSessionId);
+  const existingCartItem = selectedSessionId ? items.find(item => item.cartId === `${course.id}-${selectedSessionId}`) : undefined;
+  const isItemInCart = !!existingCartItem;
+  const availableSlotsForBooking = selectedSession ? selectedSession.remainingSlots - (existingCartItem?.quantity || 0) : 0;
+
+  return (
+    <>
+    <div className={`bg-white p-6 rounded-xl shadow-lg transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 flex flex-col relative ${isFullyBooked && !isLoadingSessions ? 'opacity-50' : ''}`}>
+        {isFullyBooked && !isLoadingSessions && (
+            <div className="absolute inset-0 bg-white bg-opacity-70 flex items-center justify-center z-10 rounded-xl backdrop-blur-sm">
+                <span className="text-xl md:text-3xl font-extrabold text-red-600 bg-white px-4 py-2 md:px-6 md:py-3 rounded-lg shadow-lg transform -rotate-12 border-4 border-red-600 border-dashed">
+                    FULLY BOOKED
+                </span>
+            </div>
+        )}
+        <div className="flex-grow">
+            <div className="mb-4">
+                <span className="inline-block bg-indigo-100 text-indigo-800 text-xs font-semibold px-3 py-1 rounded-full">{course.category}</span>
+            </div>
+            <h2 className="text-2xl font-bold text-slate-800 mb-2">{course.name}</h2>
+            {course.importantHighlight && (
+                <div className="my-4 p-3 bg-blue-50 border-l-4 border-blue-400 text-blue-800 text-sm flex items-start gap-2 rounded-md">
+                     <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg>
+                    <span>{course.importantHighlight}</span>
+                </div>
+            )}
+            <p className="text-indigo-600 font-semibold text-xl mb-4">RM{course.price.toFixed(2)}</p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                <div className="space-y-2">
+                    <label className="block text-sm font-medium text-slate-700">Select a Date:</label>
+                    {isLoadingSessions ? <div className="h-10 flex items-center"><LoadingSpinner /></div> : (
+                        <select 
+                            onChange={(e) => setSelectedSessionId(e.target.value)} 
+                            value={selectedSessionId || ""}
+                            className="block w-full px-3 py-2 border border-slate-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition"
+                        >
+                            {sessions.length === 0 && <option disabled>No sessions available</option>}
+                            {isFullyBooked && sessions.length > 0 && <option disabled>All sessions fully booked</option>}
+                            {sessions.map(session => (
+                                <option key={session.id} value={session.id} disabled={session.remainingSlots <= 0}>
+                                    {session.date}
+                                </option>
+                            ))}
+                        </select>
+                    )}
+                </div>
+                 <div className="space-y-2">
+                    <label htmlFor={`quantity-${course.id}`} className="block text-sm font-medium text-slate-700">Quantity:</label>
+                    <input
+                        id={`quantity-${course.id}`}
+                        type="number"
+                        value={quantity}
+                        onChange={(e) => {
+                            const val = parseInt(e.target.value, 10);
+                            const maxSlots = availableSlotsForBooking;
+                            const newQuantity = isNaN(val) ? 1 : Math.max(1, Math.min(val, maxSlots));
+                            setQuantity(newQuantity);
+                        }}
+                        min="1"
+                        max={availableSlotsForBooking}
+                        disabled={!selectedSession || availableSlotsForBooking <= 0}
+                        className="block w-full px-3 py-2 border border-slate-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition disabled:bg-slate-100 disabled:cursor-not-allowed"
+                    />
+                </div>
+            </div>
+            
+            {selectedSession && (
+                <p className={`text-sm font-medium text-center mb-4 p-2 rounded-md ${
+                    selectedSession.remainingSlots > 5 ? 'bg-green-100 text-green-800' : 
+                    selectedSession.remainingSlots > 0 ? 'bg-yellow-100 text-yellow-800' :
+                    'bg-red-100 text-red-800'}`
+                }>
+                    {selectedSession.remainingSlots > 0
+                      ? `${selectedSession.remainingSlots} slots remaining`
+                      : 'Fully Booked'}
+                </p>
+            )}
+        </div>
+        
+        <div className="mt-auto pt-4">
+            <button 
+                onClick={() => setIsTermsModalOpen(true)}
+                disabled={!selectedSession || availableSlotsForBooking <= 0}
+                className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out hover:bg-indigo-700 disabled:bg-slate-400 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+            >
+                {isItemInCart ? `Add ${quantity} More` : `Add ${quantity} to Cart`}
+            </button>
+        </div>
+    </div>
+    {isTermsModalOpen && (
+        <TermsModal
+            terms={course.termsAndConditions}
+            isOpen={isTermsModalOpen}
+            onClose={() => setIsTermsModalOpen(false)}
+            onAgree={handleAgreeAndAddToCart}
+        />
+    )}
+    </>
+  );
+};
+
+
+const Storefront: React.FC = () => {
+    const [courses, setCourses] = useState<Course[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchCourses = async () => {
+            setIsLoading(true);
+            try {
+                const allCourses = await getCourses();
+                // Only show courses that are not marked as hidden
+                const visibleCourses = allCourses.filter(course => !course.isHidden);
+                setCourses(visibleCourses);
+            } catch (error) {
+                console.error("Failed to fetch courses:", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchCourses();
+    }, []);
+
+    return (
+        <div className="min-h-screen bg-slate-50 text-slate-800">
+            <StorefrontHeader />
+            <main className="p-4 sm:p-6 lg:p-8">
+                <div className="bg-white rounded-xl shadow-sm mb-10">
+                    <div className="max-w-7xl mx-auto py-12 px-4 sm:py-16 sm:px-6 lg:px-8 text-center">
+                        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight sm:text-4xl lg:text-5xl">
+                            Unlock Your Potential
+                        </h1>
+                        <p className="mt-6 max-w-2xl mx-auto text-lg text-slate-600">
+                            Book your spot in one of our expert-led courses and take the next step in your professional journey.
+                        </p>
+                    </div>
+                </div>
+
+                {isLoading ? (
+                    <div className="flex justify-center items-center py-20">
+                        <LoadingSpinner />
+                    </div>
+                ) : (
+                    <>
+                    {courses.length > 0 ? (
+                        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
+                            {courses.map(course => (
+                               <CourseBookingCard key={course.id} course={course} />
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center bg-white p-12 rounded-xl shadow-md">
+                            <h3 className="text-2xl font-bold text-slate-800">No Courses Available</h3>
+                            <p className="text-slate-500 text-lg mt-2">No courses with available dates are currently scheduled. Please check back later!</p>
+                        </div>
+                    )}
+                    </>
+                )}
+            </main>
+             <footer className="text-center py-8 text-slate-500 text-sm">
+                <p>&copy; {new Date().getFullYear()} Lake Recreation Center Putrajaya. All Rights Reserved.</p>
+            </footer>
+        </div>
+    );
+};
+
+export default Storefront;
+</file>
+
+<file path="README.md">
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+</div>
+
+# Run and deploy your AI Studio app
+
+This contains everything you need to run your app locally.
+
+View your app in AI Studio: https://ai.studio/apps/drive/1rI1Fw05bP6u_HYXVgYzWKRFfcSCwgmmq
+
+## Run Locally
+
+**Prerequisites:**  Node.js
+
+
+1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`
+</file>
+
+<file path="services/firebase.ts">
+import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
+import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, initializeFirestore, Firestore } from 'firebase/firestore';
+import { getFunctions, Functions } from 'firebase/functions';
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDbjl0WS3YC6XVgiROhkEud5sKsqNkXTk8",
+  authDomain: "courses-43ee6.firebaseapp.com",
+  projectId: "courses-43ee6",
+  storageBucket: "courses-43ee6.firebasestorage.app",
+  messagingSenderId: "913794600574",
+  appId: "1:913794600574:web:a00d6e2c92226a9c3e122f"
+};
+
+class FirebaseService {
+  private static instance: FirebaseService;
+  public app: FirebaseApp;
+  public auth: Auth;
+  public db: Firestore;
+  public functions: Functions;
+
+  private constructor() {
+    if (getApps().length === 0) {
+      this.app = initializeApp(firebaseConfig);
+      // Critical instruction: use initializeFirestore with experimentalAutoDetectLongPolling
+      this.db = initializeFirestore(this.app, {
+        experimentalAutoDetectLongPolling: true,
+      });
+    } else {
+      this.app = getApp();
+      this.db = getFirestore(this.app);
+    }
+    this.auth = getAuth(this.app);
+    this.functions = getFunctions(this.app);
+  }
+
+  public static getInstance(): FirebaseService {
+    if (!FirebaseService.instance) {
+      FirebaseService.instance = new FirebaseService();
+    }
+    return FirebaseService.instance;
+  }
+}
+
+const firebaseService = FirebaseService.getInstance();
+export const auth = firebaseService.auth;
+export const db = firebaseService.db;
+export const functions = firebaseService.functions;
+export default firebaseService;
+</file>
+
+<file path="services/firestoreService.ts">
+import { collection, addDoc, getDocs, updateDoc, doc, query, where, deleteDoc, DocumentData, WithFieldValue, QueryDocumentSnapshot, SnapshotOptions, runTransaction, Timestamp, writeBatch } from 'firebase/firestore';
+import { db } from './firebase';
+import { Course, Session, Category, Booking, BookingItem } from '../types';
+
+// Firestore converter to ensure type safety
+const courseConverter = {
+  toFirestore(course: WithFieldValue<Course>): DocumentData {
+    return { 
+        name: course.name, 
+        price: course.price, 
+        category: course.category, 
+        termsAndConditions: course.termsAndConditions,
+        isHidden: course.isHidden,
+        importantHighlight: course.importantHighlight || '',
+        sku: course.sku,
+    };
+  },
+  fromFirestore(
+    snapshot: QueryDocumentSnapshot,
+    options: SnapshotOptions
+  ): Course {
+    const data = snapshot.data(options)!;
+    return {
+      id: snapshot.id,
+      name: data.name,
+      price: data.price,
+      category: data.category,
+      termsAndConditions: data.termsAndConditions,
+      isHidden: data.isHidden || false, // Default to false if not set
+      importantHighlight: data.importantHighlight || '',
+      sku: data.sku || '', // Default to empty string if not set
+    };
+  },
+};
+
+const sessionConverter = {
+    toFirestore(session: WithFieldValue<Session>): DocumentData {
+      return { 
+          courseId: session.courseId, 
+          date: session.date, 
+          totalSlots: session.totalSlots,
+          remainingSlots: session.remainingSlots,
+      };
+    },
+    fromFirestore(
+      snapshot: QueryDocumentSnapshot,
+      options: SnapshotOptions
+    ): Session {
+      const data = snapshot.data(options)!;
+      return {
+        id: snapshot.id,
+        courseId: data.courseId,
+        date: data.date,
+        totalSlots: data.totalSlots,
+        remainingSlots: data.remainingSlots,
+      };
+    },
+  };
+
+const categoryConverter = {
+    toFirestore(category: WithFieldValue<Category>): DocumentData {
+        return { name: category.name };
+    },
+    fromFirestore(
+        snapshot: QueryDocumentSnapshot,
+        options: SnapshotOptions
+    ): Category {
+        const data = snapshot.data(options)!;
+        return {
+            id: snapshot.id,
+            name: data.name,
+        };
+    },
+};
+
+const bookingConverter = {
+    toFirestore(booking: WithFieldValue<Booking>): DocumentData {
+        return {
+            customerFullName: booking.customerFullName,
+            customerPhone: booking.customerPhone,
+            customerEmail: booking.customerEmail,
+            items: booking.items,
+            totalAmount: booking.totalAmount,
+            paymentStatus: booking.paymentStatus,
+            bookingDate: booking.bookingDate,
+        };
+    },
+    fromFirestore(
+        snapshot: QueryDocumentSnapshot,
+        options: SnapshotOptions
+    ): Booking {
+        const data = snapshot.data(options)!;
+        return {
+            id: snapshot.id,
+            customerFullName: data.customerFullName,
+            customerPhone: data.customerPhone,
+            customerEmail: data.customerEmail,
+            items: data.items,
+            totalAmount: data.totalAmount,
+            paymentStatus: data.paymentStatus,
+            bookingDate: data.bookingDate,
+        };
+    },
+};
+
+// Course Functions
+export const getCourses = async (): Promise<Course[]> => {
+  const coursesCol = collection(db, 'courses').withConverter(courseConverter);
+  const courseSnapshot = await getDocs(coursesCol);
+  return courseSnapshot.docs.map(doc => doc.data());
+};
+
+export const addCourse = async (courseData: Omit<Course, 'id'>) => {
+  await addDoc(collection(db, 'courses').withConverter(courseConverter), {
+      ...courseData,
+      isHidden: false, // Default to not hidden
+  });
+};
+
+export const updateCourse = async (courseId: string, courseData: Partial<Course>) => {
+  const courseRef = doc(db, 'courses', courseId).withConverter(courseConverter);
+  await updateDoc(courseRef, courseData);
+};
+
+export const deleteCourse = async (courseId: string) => {
+    const batch = writeBatch(db);
+
+    // 1. Delete the course itself
+    const courseRef = doc(db, 'courses', courseId);
+    batch.delete(courseRef);
+
+    // 2. Find and delete all associated sessions
+    const sessionsQuery = query(collection(db, 'sessions'), where('courseId', '==', courseId));
+    const sessionSnapshot = await getDocs(sessionsQuery);
+    sessionSnapshot.forEach((doc) => {
+        batch.delete(doc.ref);
+    });
+    
+    // 3. Commit the batched write
+    await batch.commit();
+};
+
+
+// Session Functions
+export const getSessionsForCourse = async (courseId: string): Promise<Session[]> => {
+  const q = query(collection(db, 'sessions'), where('courseId', '==', courseId)).withConverter(sessionConverter);
+  const sessionSnapshot = await getDocs(q);
+  return sessionSnapshot.docs.map(doc => doc.data());
+};
+
+export const addSession = async (sessionData: Omit<Session, 'id'>) => {
+    await addDoc(collection(db, 'sessions'), {
+        ...sessionData,
+        remainingSlots: sessionData.totalSlots
+    });
+};
+
+export const updateSession = async (sessionId: string, sessionData: Partial<Session>) => {
+    const sessionRef = doc(db, 'sessions', sessionId);
+    await updateDoc(sessionRef, sessionData);
+};
+
+export const deleteSession = async (sessionId: string) => {
+    const sessionRef = doc(db, 'sessions', sessionId);
+    await deleteDoc(sessionRef);
+};
+
+
+// Category Functions
+export const getCategories = async (): Promise<Category[]> => {
+    const categoriesCol = collection(db, 'categories').withConverter(categoryConverter);
+    const categorySnapshot = await getDocs(categoriesCol);
+    return categorySnapshot.docs.map(doc => doc.data());
+};
+
+export const addCategory = async (categoryData: Omit<Category, 'id'>) => {
+    await addDoc(collection(db, 'categories'), categoryData);
+};
+
+export const updateCategory = async (categoryId: string, categoryData: Partial<Category>) => {
+    const categoryRef = doc(db, 'categories', categoryId);
+    await updateDoc(categoryRef, categoryData);
+};
+
+export const deleteCategory = async (categoryId: string) => {
+    const categoryRef = doc(db, 'categories', categoryId);
+    await deleteDoc(categoryRef);
+};
+
+// Booking Functions
+export const getBookings = async (): Promise<Booking[]> => {
+    const bookingsCol = collection(db, 'bookings').withConverter(bookingConverter);
+    const bookingSnapshot = await getDocs(bookingsCol);
+    return bookingSnapshot.docs.map(doc => doc.data());
+};
+
+export const addBooking = async (bookingData: Omit<Booking, 'id'>): Promise<string> => {
+    const docRef = await addDoc(collection(db, 'bookings'), {
+        ...bookingData,
+        bookingDate: Timestamp.now()
+    });
+    return docRef.id;
+};
+
+// This function is now deprecated in favor of the cloud function but kept for reference
+export const processSuccessfulPayment = async (bookingId: string, items: BookingItem[]) => {
+    try {
+        await runTransaction(db, async (transaction) => {
+            // 1. Update the booking status to 'paid'
+            const bookingRef = doc(db, 'bookings', bookingId);
+            transaction.update(bookingRef, { paymentStatus: 'paid' });
+
+            // 2. Decrement the remaining slots for each session
+            for (const item of items) {
+                const sessionRef = doc(db, 'sessions', item.sessionId);
+                const sessionDoc = await transaction.get(sessionRef);
+                if (!sessionDoc.exists()) {
+                    throw `Session ${item.sessionId} not found!`;
+                }
+                const currentSlots = sessionDoc.data().remainingSlots;
+                if (currentSlots < 1) {
+                    throw `No remaining slots for session ${item.sessionId} on ${item.sessionDate}`;
+                }
+                transaction.update(sessionRef, { remainingSlots: currentSlots - 1 });
+            }
+        });
+        console.log("Transaction successfully committed!");
+    } catch (e) {
+        console.error("Transaction failed: ", e);
+        // If the transaction fails, we should ideally update the booking status to 'failed'
+        const bookingRef = doc(db, 'bookings', bookingId);
+        await updateDoc(bookingRef, { paymentStatus: 'failed' });
+        throw e; // Re-throw the error to be handled by the caller
+    }
+};
+</file>
+
+<file path="tsconfig.json">
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
+    "module": "ESNext",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "skipLibCheck": true,
+    "types": [
+      "node"
+    ],
+    "moduleResolution": "bundler",
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "allowJs": true,
+    "jsx": "react-jsx",
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    },
+    "allowImportingTsExtensions": true,
+    "noEmit": true
+  }
+}
+</file>
+
+<file path="types/index.ts">
+export interface Course {
+  id: string;
+  name: string;
+  price: number;
+  category: string;
+  termsAndConditions: string;
+  isHidden: boolean;
+  importantHighlight?: string;
+  sku: string; // Mandatory for Loyverse integration
+}
+
+export interface Session {
+  id:string;
+  courseId: string;
+  date: string; // Storing date as ISO string e.g., "2024-07-28"
+  totalSlots: number;
+  remainingSlots: number;
+}
+
+export interface Category {
+    id: string;
+    name: string;
+}
+
+// For client-side cart management
+export interface CartItem {
+    cartId: string; // Unique identifier for the cart item, e.g., `${courseId}-${sessionId}`
+    courseId: string;
+    courseName: string;
+    sessionId: string;
+    sessionDate: string;
+    price: number;
+    category: string;
+    quantity: number;
+}
+
+// For storing in Firestore `bookings` collection
+export interface BookingItem {
+    courseId: string;
+    courseName: string;
+    sessionId: string;
+    sessionDate: string;
+    price: number;
+    category: string;
+    quantity: number;
+}
+
+export interface Booking {
+    id: string;
+    customerFullName: string;
+    customerPhone: string;
+    customerEmail: string;
+    items: BookingItem[];
+    totalAmount: number;
+    paymentStatus: 'pending' | 'paid' | 'failed';
+    bookingDate: {
+        seconds: number;
+        nanoseconds: number;
+    } | Date; // Firestore timestamp
+}
+</file>
+
+<file path="vite.config.ts">
+import path from 'path';
+import { defineConfig, loadEnv } from 'vite';
+import react from '@vitejs/plugin-react';
+
+export default defineConfig(({ mode }) => {
+    const env = loadEnv(mode, '.', '');
+    return {
+      server: {
+        port: 3000,
+        host: '0.0.0.0',
+      },
+      plugins: [react()],
+      define: {
+        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
+        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
+      },
+      resolve: {
+        alias: {
+          '@': path.resolve(__dirname, '.'),
+        }
+      }
+    };
+});
+</file>
+
+</files>
