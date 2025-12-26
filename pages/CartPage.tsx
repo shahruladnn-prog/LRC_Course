@@ -7,10 +7,11 @@ import { httpsCallable } from 'firebase/functions';
 import { BookingItem } from '../types';
 import Logo from '../components/common/Logo';
 
+// RESTORED: Helper to check if a session is within 7 days
 const isWithin7Days = (dateString: string): boolean => {
     const sessionDate = new Date(dateString);
     const today = new Date();
-    today.setHours(0, 0, 0, 0); 
+    today.setHours(0, 0, 0, 0); // Normalize today to the start of the day
     const sevenDaysFromNow = new Date();
     sevenDaysFromNow.setDate(today.getDate() + 7);
     return sessionDate >= today && sessionDate <= sevenDaysFromNow;
@@ -26,7 +27,7 @@ const CartPage: React.FC = () => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // --- UPDATED FOR AUTOMATION: Redirects to Bizappay ---
+    // UPDATED: handleCheckout now redirects to Bizappay
     const handleCheckout = async () => {
         if (!customerFullName || !customerEmail || !customerPhone) {
             setError("Please fill in your Full Name, Email, and Phone Number.");
@@ -57,7 +58,7 @@ const CartPage: React.FC = () => {
                 bookingDate: new Date(),
             });
 
-            // 2. Call the NEW Cloud Function to create the Bill
+            // 2. Call the NEW Cloud Function to create the payment link
             const createBizappayBill = httpsCallable(functions, 'createBizappayBill');
             const result = await createBizappayBill({ 
                 bookingId, 
@@ -78,7 +79,7 @@ const CartPage: React.FC = () => {
 
         } catch (e: any) {
             console.error("Checkout failed:", e);
-            setError(e.message || "An error occurred. Please check your internet connection.");
+            setError(e.message || "An error occurred during checkout. Please try again.");
         } finally {
             setIsProcessing(false);
         }
@@ -167,7 +168,7 @@ const CartPage: React.FC = () => {
                                     disabled={isProcessing}
                                     className="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out hover:bg-green-700 disabled:bg-slate-400 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
                                 >
-                                    {isProcessing ? 'Redirecting to Gateway...' : 'Proceed to Payment'}
+                                    {isProcessing ? 'Redirecting to Payment Gateway...' : 'Proceed to Payment'}
                                 </button>
                             </div>
                         </div>
