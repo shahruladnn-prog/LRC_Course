@@ -8,7 +8,7 @@ const BookingsManagement: React.FC = () => {
     const [courses, setCourses] = useState<Course[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [syncingId, setSyncingId] = useState<string | null>(null); // New state for automation
+    const [syncingId, setSyncingId] = useState<string | null>(null); // NEW: For automation tracking
 
     const [filterCourse, setFilterCourse] = useState<string>('all');
     const [filterCategory, setFilterCategory] = useState<string>('all');
@@ -16,22 +16,22 @@ const BookingsManagement: React.FC = () => {
 
     // --- NEW: Manual Sync Logic for Automation ---
     const handleManualSync = async (bookingId: string) => {
-        const confirmSync = window.confirm("Deduct slots and sync this booking to Loyverse manually?");
+        const confirmSync = window.confirm("Manually sync this booking to Loyverse and deduct inventory?");
         if (!confirmSync) return;
 
         setSyncingId(bookingId);
         try {
-            // Calls the backend trigger we built to bypass automation issues
+            // Trigger the perfected manual sync endpoint
             const response = await fetch(`https://manualadminupdate-2n7sc53hoa-uc.a.run.app?bookingId=${bookingId}`);
             const result = await response.text();
             alert(result);
             
-            // Refresh the list to show the new "paid" status
+            // Refresh data to show updated 'paid' status
             const bookingsData = await getBookings();
             setBookings(bookingsData);
         } catch (error) {
             console.error("Manual sync failed:", error);
-            alert("Failed to sync booking. Please check your internet connection.");
+            alert("Sync failed. Please check your internet connection.");
         } finally {
             setSyncingId(null);
         }
@@ -92,7 +92,7 @@ const BookingsManagement: React.FC = () => {
         <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md">
             <h2 className="text-2xl font-bold mb-4 text-slate-800">Bookings Management</h2>
             
-            {/* RESTORED: Full Filter UI */}
+            {/* RESTORED: Your Full Filter UI */}
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
                 <div>
                     <label className="block text-sm font-medium text-slate-700">Filter by Course</label>
@@ -157,8 +157,8 @@ const BookingsManagement: React.FC = () => {
                                         {booking.paymentStatus}
                                     </span>
                                 </td>
-                                <td data-label="Action" className="block py-2 px-4 md:px-6 md:py-4 md:table-cell md:whitespace-nowrap text-right md:text-left before:content-[attr(data-label)] before:font-bold before:float-left md:before:content-none">
-                                    {/* NEW: Automated Sync Button */}
+                                <td data-label="Sync" className="block py-2 px-4 md:px-6 md:py-4 md:table-cell md:whitespace-nowrap text-right md:text-left before:content-[attr(data-label)] before:font-bold before:float-left md:before:content-none">
+                                    {/* NEW: Automation Action Button */}
                                     {booking.paymentStatus === 'pending' && (
                                         <button 
                                             onClick={() => handleManualSync(booking.id)}
@@ -169,7 +169,7 @@ const BookingsManagement: React.FC = () => {
                                         </button>
                                     )}
                                 </td>
-                            </tr>
+                             </tr>
                         )) : (
                             <tr>
                                 <td colSpan={5} className="text-center py-10 text-slate-500">

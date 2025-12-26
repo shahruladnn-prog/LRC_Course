@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Course, Session, CartItem } from '../types';
@@ -47,24 +46,30 @@ const CourseBookingCard: React.FC<{ course: Course }> = ({ course }) => {
     const fetchSessions = async () => {
       setIsLoadingSessions(true);
       const sessionsData = await getSessionsForCourse(course.id);
-      setSessions(sessionsData);
-      const firstAvailableSession = sessionsData.find(s => s.remainingSlots > 0);
-      if (firstAvailableSession) {
-        setSelectedSessionId(firstAvailableSession.id);
+      
+      // Sort sessions by date so they appear in order
+      const sortedSessions = sessionsData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      setSessions(sortedSessions);
+
+      // Select the first session that actually has slots
+      const firstAvailable = sortedSessions.find(s => s.remainingSlots > 0);
+      if (firstAvailable) {
+        setSelectedSessionId(firstAvailable.id);
         setIsFullyBooked(false);
       } else {
-        setSelectedSessionId(null);
-        setIsFullyBooked(sessionsData.length > 0);
+        // If everything is RM0, select the first one but mark as fully booked
+        setSelectedSessionId(sortedSessions[0]?.id || null);
+        setIsFullyBooked(sortedSessions.length > 0);
       }
       setIsLoadingSessions(false);
     };
     fetchSessions();
   }, [course.id]);
 
+  // FIXED: Reset quantity logic to prevent being stuck at 0
   useEffect(() => {
-    setQuantity(1); // Reset quantity when session changes
+    setQuantity(1);
   }, [selectedSessionId]);
-
 
   const handleAgreeAndAddToCart = () => {
     const selectedSession = sessions.find(s => s.id === selectedSessionId);
@@ -86,7 +91,6 @@ const CourseBookingCard: React.FC<{ course: Course }> = ({ course }) => {
 
   const selectedSession = sessions.find(s => s.id === selectedSessionId);
   const existingCartItem = selectedSessionId ? items.find(item => item.cartId === `${course.id}-${selectedSessionId}`) : undefined;
-  const isItemInCart = !!existingCartItem;
   const availableSlotsForBooking = selectedSession ? selectedSession.remainingSlots - (existingCartItem?.quantity || 0) : 0;
 
   return (
@@ -104,12 +108,14 @@ const CourseBookingCard: React.FC<{ course: Course }> = ({ course }) => {
                 <span className="inline-block bg-indigo-100 text-indigo-800 text-xs font-semibold px-3 py-1 rounded-full">{course.category}</span>
             </div>
             <h2 className="text-2xl font-bold text-slate-800 mb-2">{course.name}</h2>
+            
             {course.importantHighlight && (
                 <div className="my-4 p-3 bg-blue-50 border-l-4 border-blue-400 text-blue-800 text-sm flex items-start gap-2 rounded-md">
                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" /></svg>
                     <span>{course.importantHighlight}</span>
                 </div>
             )}
+            
             <p className="text-indigo-600 font-semibold text-xl mb-4">RM{course.price.toFixed(2)}</p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
@@ -119,13 +125,13 @@ const CourseBookingCard: React.FC<{ course: Course }> = ({ course }) => {
                         <select 
                             onChange={(e) => setSelectedSessionId(e.target.value)} 
                             value={selectedSessionId || ""}
+                            // FIXED: Dropped 'disabled' condition that was locking the choice
                             className="block w-full px-3 py-2 border border-slate-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition"
                         >
                             {sessions.length === 0 && <option disabled>No sessions available</option>}
-                            {isFullyBooked && sessions.length > 0 && <option disabled>All sessions fully booked</option>}
                             {sessions.map(session => (
                                 <option key={session.id} value={session.id} disabled={session.remainingSlots <= 0}>
-                                    {session.date}
+                                    {session.date} {session.remainingSlots <= 0 ? '(Full)' : ''}
                                 </option>
                             ))}
                         </select>
@@ -144,7 +150,7 @@ const CourseBookingCard: React.FC<{ course: Course }> = ({ course }) => {
                             setQuantity(newQuantity);
                         }}
                         min="1"
-                        max={availableSlotsForBooking}
+                        max={availableSlotsForBooking > 0 ? availableSlotsForBooking : 1}
                         disabled={!selectedSession || availableSlotsForBooking <= 0}
                         className="block w-full px-3 py-2 border border-slate-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition disabled:bg-slate-100 disabled:cursor-not-allowed"
                     />

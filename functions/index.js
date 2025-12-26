@@ -5,6 +5,7 @@ const axios = require("axios");
 admin.initializeApp();
 const db = admin.firestore();
 
+// --- CREDENTIALS ---
 const BIZAPP_API_KEY = "83ndoryq-aaaw-v5lj-3tiy-2t4cuygj9rvn";
 const BIZAPP_CATEGORY = "w4zw0teb"; 
 const LOYVERSE_TOKEN = "d9d14fd02ac34292ab50e221da50ddb3";
@@ -16,17 +17,18 @@ const loyverseApi = axios.create({
   headers: { "Authorization": `Bearer ${LOYVERSE_TOKEN}` },
 });
 
-// SHARED LOGIC: The actual workhorse for Auto & Manual updates
+// SHARED LOGIC: Deducts slots and syncs to Loyverse
 async function processSuccessfulPayment(bookingId) {
   const bookingRef = db.collection("bookings").doc(bookingId);
   const bookingDoc = await bookingRef.get();
 
-  if (!bookingDoc.exists) return `ID ${bookingId} not found.`;
-  if (bookingDoc.data().paymentStatus === 'paid') return `ID ${bookingId} already processed.`;
+  if (!bookingDoc.exists) return `ID ${bookingId} not found in database.`;
+  if (bookingDoc.data().paymentStatus === 'paid') return `ID ${bookingId} is already paid.`;
 
   const bookingData = bookingDoc.data();
   const sessionSnapshots = [];
 
+  // Read Phase: Get all slot counts
   for (const item of bookingData.items) {
     const sDoc = await db.collection("sessions").doc(item.sessionId).get();
     if (sDoc.exists) {
@@ -34,6 +36,7 @@ async function processSuccessfulPayment(bookingId) {
     }
   }
 
+  // Write Phase: Transactional update
   await db.runTransaction(async (t) => {
     t.update(bookingRef, { paymentStatus: 'paid' });
     for (const s of sessionSnapshots) {
@@ -41,6 +44,7 @@ async function processSuccessfulPayment(bookingId) {
     }
   });
 
+  // Loyverse Phase
   const lineItems = [];
   for (const item of bookingData.items) {
     const courseDoc = await db.collection("courses").doc(item.courseId).get();
@@ -60,9 +64,10 @@ async function processSuccessfulPayment(bookingId) {
       payments: [{ payment_type_id: LOYVERSE_PAYMENT_ID, amount: bookingData.totalAmount }]
     });
   }
-  return `SUCCESS: Booking ${bookingId} updated.`;
+  return `Successfully updated Booking ${bookingId}`;
 }
 
+// 1. Create Bizappay Bill
 exports.createBizappayBill = onCall({ cors: true }, async (request) => {
   const { bookingId, amount, customerName, customerEmail, customerPhone } = request.data;
   const loginData = new URLSearchParams();
@@ -89,6 +94,7 @@ exports.createBizappayBill = onCall({ cors: true }, async (request) => {
   return { url: response.data?.url || response.data?.data?.url };
 });
 
+// 2. Automatic Webhook
 exports.bizappayWebhook = onRequest(async (req, res) => {
   let data = { ...req.query, ...req.body };
   if (Buffer.isBuffer(req.body)) {
@@ -105,8 +111,11 @@ exports.bizappayWebhook = onRequest(async (req, res) => {
   res.status(200).send("OK");
 });
 
-exports.manualAdminUpdate = onRequest(async (req, res) => {
+// 3. Manual Sync (CORS enabled for Frontend Button)
+exports.manualAdminUpdate = onRequest({ cors: true }, async (req, res) => {
   const { bookingId } = req.query;
-  const result = await processSuccessfulPayment(bookingId);
-  res.status(200).send(result);
+  try {
+    const result = await processSuccessfulPayment(bookingId);
+    res.status(200).send(result);
+  } catch (err) { res.status(500).send(err.message); }
 });
