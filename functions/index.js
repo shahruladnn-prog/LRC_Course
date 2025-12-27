@@ -5,6 +5,7 @@ const axios = require("axios");
 admin.initializeApp();
 const db = admin.firestore();
 
+// --- CREDENTIALS ---
 const BIZAPP_API_KEY = "83ndoryq-aaaw-v5lj-3tiy-2t4cuygj9rvn";
 const BIZAPP_CATEGORY = "w4zw0teb"; 
 const LOYVERSE_TOKEN = "d9d14fd02ac34292ab50e221da50ddb3";
@@ -16,37 +17,36 @@ const loyverseApi = axios.create({
   headers: { "Authorization": `Bearer ${LOYVERSE_TOKEN}` },
 });
 
-// SHARED AGGRESSIVE SEARCH & UPDATE
-async function processSuccessfulPayment(billId, amount, email) {
-  if (!billId) return "No ID provided";
-  const cleanId = String(billId).trim();
-  console.log(`--- FAIL-PROOF SEARCH: ${cleanId} ---`);
-
-  const snapshot = await db.collection("bookings").get();
+// SHARED RECOVERY LOGIC
+async function processSuccessfulPayment(billcode, amount) {
+  console.log(`--- PROCESSING ATTEMPT: ID=${billcode}, AMT=${amount} ---`);
   
-  // 1. Match by Doc ID OR the internal billcode field
+  // 1. Get ALL pending bookings
+  const snapshot = await db.collection("bookings")
+    .where("paymentStatus", "==", "pending")
+    .get();
+  
+  // 2. SEARCH 1: Match by saved Billcode field
   let match = snapshot.docs.find(d => 
-    d.id.toLowerCase() === cleanId.toLowerCase() || 
-    (d.data().billcode && String(d.data().billcode).toLowerCase() === cleanId.toLowerCase())
+    (d.data().billcode && String(d.data().billcode).toLowerCase() === String(billcode).toLowerCase()) ||
+    d.id.toLowerCase() === String(billcode).toLowerCase()
   );
 
-  // 2. Backup: Match by Email + Amount (Zero-Failure fallback)
-  if (!match && email && amount) {
-    match = snapshot.docs.find(d => {
-      const data = d.data();
-      return data.customerEmail === email && 
-             Math.abs(data.totalAmount - parseFloat(amount)) < 0.05 &&
-             data.paymentStatus === 'pending';
-    });
+  // 3. SEARCH 2 (The Nuke): If ID fails, match by the exact money amount
+  if (!match && amount) {
+    console.log(`ID Match failed. Searching by Amount backup: ${amount}`);
+    match = snapshot.docs.find(d => Math.abs(parseFloat(d.data().totalAmount) - parseFloat(amount)) < 0.01);
   }
 
-  if (!match) return `Error: No booking found for ${cleanId}`;
+  if (!match) {
+    console.error("FATAL: No pending booking found for this signal.");
+    return "Not Found";
+  }
 
   const bookingRef = match.ref;
   const bookingData = match.data();
-  if (bookingData.paymentStatus === 'paid') return "Already paid";
 
-  // UPDATE FIRESTORE AND SLOTS
+  // 4. Update Firestore and Slots immediately
   const sessionSnapshots = [];
   for (const item of bookingData.items) {
     const sDoc = await db.collection("sessions").doc(item.sessionId).get();
@@ -54,13 +54,14 @@ async function processSuccessfulPayment(billId, amount, email) {
   }
 
   await db.runTransaction(async (t) => {
-    t.update(bookingRef, { paymentStatus: 'paid', updatedAt: admin.firestore.FieldValue.serverTimestamp() });
+    t.update(bookingRef, { paymentStatus: 'paid', billcode: billcode }); 
     for (const s of sessionSnapshots) {
       t.update(db.collection("sessions").doc(s.id), { remainingSlots: Math.max(0, s.current - s.qty) });
     }
   });
+  console.log("SUCCESS: Database updated.");
 
-  // LOYVERSE SYNC (Isolated)
+  // 5. Loyverse (Isolated)
   try {
     const lineItems = [];
     for (const item of bookingData.items) {
@@ -80,19 +81,22 @@ async function processSuccessfulPayment(billId, amount, email) {
         payments: [{ payment_type_id: LOYVERSE_PAYMENT_ID, amount: bookingData.totalAmount }]
       });
     }
-  } catch (err) { console.error("Loyverse failed but DB is updated:", err.message); }
+  } catch (err) { console.error("Loyverse Fail (Ignored):", err.message); }
 
   return "Success";
 }
 
-// 1. BILL CREATION (Updated to save BillCode)
+// 1. BILL CREATION (Saves Billcode to document)
 exports.createBizappayBill = onCall({ cors: true }, async (request) => {
   const { bookingId, amount, customerName, customerEmail, customerPhone } = request.data;
+  
+  // Get Auth Token
   const loginData = new URLSearchParams();
   loginData.append('apiKey', BIZAPP_API_KEY);
   const tokenRes = await axios.post('https://bizappay.my/api/v3/token', loginData);
   const authToken = tokenRes.data?.token || tokenRes.data?.data?.token;
 
+  // Build Bizappay Form
   const formData = new URLSearchParams();
   formData.append('apiKey', BIZAPP_API_KEY);
   formData.append('category', BIZAPP_CATEGORY);
@@ -110,40 +114,40 @@ exports.createBizappayBill = onCall({ cors: true }, async (request) => {
   });
 
   const bCode = response.data?.data?.billcode || response.data?.billcode;
+  
+  // CRITICAL FIX: Automatically save the field to the document
   if (bCode) {
-    // LINK BILLCODE TO DOCUMENT
     await db.collection("bookings").doc(bookingId).update({ billcode: bCode });
   }
 
   return { url: response.data?.url || response.data?.data?.url };
 });
 
-// 2. WEBHOOK (Universal Multipart Parser)
+// 2. WEBHOOK (With Multipart Raw Parsing)
 exports.bizappayWebhook = onRequest(async (req, res) => {
-  let data = { ...req.query, ...req.body };
-  
-  // RAW PARSING: Fixes the Cloud Functions Multipart Bug
+  let bCode = req.query.billcode || req.body.billcode;
+  let bStatus = req.query.billstatus || req.body.billstatus;
+  let bAmount = req.query.billamount || req.body.billamount;
+
   if (req.rawBody) {
     const raw = req.rawBody.toString();
-    const matches = { 
-        bc: raw.match(/name="billcode"\r\n\r\n(.*?)\r\n/),
-        st: raw.match(/name="billstatus"\r\n\r\n(.*?)\r\n/),
-        am: raw.match(/name="billamount"\r\n\r\n(.*?)\r\n/)
-    };
-    if (matches.bc) data.billcode = matches.bc[1].trim();
-    if (matches.st) data.billstatus = matches.st[1].trim();
-    if (matches.am) data.billamount = matches.am[1].trim();
+    const bc = raw.match(/name="billcode"\r\n\r\n(.*?)\r\n/);
+    const st = raw.match(/name="billstatus"\r\n\r\n(.*?)\r\n/);
+    const am = raw.match(/name="billamount"\r\n\r\n(.*?)\r\n/);
+    if (bc) bCode = bc[1].trim();
+    if (st) bStatus = st[1].trim();
+    if (am) bAmount = am[1].trim();
   }
 
-  if (String(data.billstatus) === '1' || String(data.billstatus).toLowerCase() === 'paid') {
-    await processSuccessfulPayment(data.billcode, data.billamount);
+  if (String(bStatus) === '1' || String(bStatus).toLowerCase() === 'paid') {
+    await processSuccessfulPayment(bCode, bAmount);
   }
   res.status(200).send("OK");
 });
 
 // 3. MANUAL SYNC
 exports.manualAdminUpdate = onRequest({ cors: true }, async (req, res) => {
-  const { bookingId } = req.query;
-  const result = await processSuccessfulPayment(bookingId);
+  const { bookingId, amount } = req.query;
+  const result = await processSuccessfulPayment(bookingId, amount);
   res.status(200).send(result);
 });
