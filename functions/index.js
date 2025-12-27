@@ -19,64 +19,54 @@ const loyverseApi = axios.create({
 
 // SHARED LOGIC: Deducts slots and syncs to Loyverse
 async function processSuccessfulPayment(bookingId) {
-  console.log(`--- Starting Process for ID: ${bookingId} ---`);
+  console.log(`--- Processing Payment for ID: ${bookingId} ---`);
   
-  // 1. Find the booking (Now with Case-Insensitive Fallback)
+  // 1. CASE-INSENSITIVE SEARCH
   let bookingRef = db.collection("bookings").doc(bookingId);
   let bookingDoc = await bookingRef.get();
 
   if (!bookingDoc.exists) {
-    console.log("Direct ID match failed. Searching all bookings for case-insensitive match...");
-    const allBookings = await db.collection("bookings").get();
-    const match = allBookings.docs.find(d => d.id.toLowerCase() === bookingId.toLowerCase());
+    console.log("Direct match failed. Searching all bookings for case-insensitive match...");
+    const snapshot = await db.collection("bookings").get();
+    const match = snapshot.docs.find(d => d.id.toLowerCase() === bookingId.toLowerCase());
     
     if (match) {
       bookingDoc = match;
       bookingRef = match.ref;
-      console.log(`Match found! Real ID is: ${match.id}`);
+      console.log(`Found match with real ID: ${match.id}`);
     } else {
-      console.error(`CRITICAL: Booking ${bookingId} not found in database.`);
+      console.error(`ID ${bookingId} not found in database.`);
       return `Error: ID ${bookingId} not found.`;
     }
   }
 
   const bookingData = bookingDoc.data();
-  if (bookingData.paymentStatus === 'paid') {
-    console.log("Booking is already marked as paid. Skipping.");
-    return `ID ${bookingId} is already paid.`;
-  }
+  if (bookingData.paymentStatus === 'paid') return "Already paid.";
 
-  // 2. Database Update Phase (Inventory & Status)
+  // 2. INVENTORY DEDUCTION
   const sessionSnapshots = [];
   for (const item of bookingData.items) {
     const sDoc = await db.collection("sessions").doc(item.sessionId).get();
     if (sDoc.exists) {
       sessionSnapshots.push({ 
         id: item.sessionId, 
-        currentSlots: sDoc.data().remainingSlots || 0, 
+        current: sDoc.data().remainingSlots || 0, 
         qty: item.quantity 
       });
     }
   }
 
-  try {
-    await db.runTransaction(async (t) => {
-      t.update(bookingRef, { paymentStatus: 'paid' });
-      for (const s of sessionSnapshots) {
-        t.update(db.collection("sessions").doc(s.id), { 
-          remainingSlots: Math.max(0, s.currentSlots - s.qty) 
-        });
-      }
-    });
-    console.log("Firestore updated successfully: Status set to paid and slots deducted.");
-  } catch (dbError) {
-    console.error("Database Transaction Failed:", dbError.message);
-    throw new Error("Database update failed.");
-  }
+  await db.runTransaction(async (t) => {
+    t.update(bookingRef, { paymentStatus: 'paid' });
+    for (const s of sessionSnapshots) {
+      t.update(db.collection("sessions").doc(s.id), { 
+        remainingSlots: Math.max(0, s.current - s.qty) 
+      });
+    }
+  });
 
-  // 3. Loyverse Phase (Wrapped in Try-Catch so it doesn't break the whole app)
+  // 3. LOYVERSE SYNC (Try-Catch Protected)
   try {
-    console.log("Attempting Loyverse Sync...");
     const lineItems = [];
     for (const item of bookingData.items) {
       const courseDoc = await db.collection("courses").doc(item.courseId).get();
@@ -89,8 +79,6 @@ async function processSuccessfulPayment(bookingId) {
             quantity: item.quantity, 
             price: item.price 
           });
-        } else {
-          console.warn(`SKU ${sku} not found in Loyverse variants.`);
         }
       }
     }
@@ -101,63 +89,52 @@ async function processSuccessfulPayment(bookingId) {
         line_items: lineItems,
         payments: [{ payment_type_id: LOYVERSE_PAYMENT_ID, amount: bookingData.totalAmount }]
       });
-      console.log("Loyverse receipt created successfully.");
-    } else {
-      console.log("No valid SKUs found to sync with Loyverse.");
+      console.log("Loyverse sync successful.");
     }
-  } catch (loyverseError) {
-    // We log the error but don't 'throw' it, so the function returns "Success" to the user
-    console.error("Loyverse Sync Failed (But Firestore is updated):", loyverseError.response?.data || loyverseError.message);
+  } catch (err) {
+    console.error("Loyverse Sync Failed (DB is still updated):", err.message);
   }
 
-  return `Successfully updated Booking ${bookingId}`;
+  return `Successfully updated ${bookingId}`;
 }
 
-// 1. Create Bizappay Bill (Preserved)
+// 4. BIZAPPAY BILL CREATION (Preserved)
 exports.createBizappayBill = onCall({ cors: true }, async (request) => {
   const { bookingId, amount, customerName, customerEmail, customerPhone } = request.data;
-  try {
-    const loginData = new URLSearchParams();
-    loginData.append('apiKey', BIZAPP_API_KEY);
-    const tokenRes = await axios.post('https://bizappay.my/api/v3/token', loginData);
-    const authToken = tokenRes.data?.token || tokenRes.data?.data?.token;
+  const loginData = new URLSearchParams();
+  loginData.append('apiKey', BIZAPP_API_KEY);
+  const tokenRes = await axios.post('https://bizappay.my/api/v3/token', loginData);
+  const authToken = tokenRes.data?.token || tokenRes.data?.data?.token;
 
-    const formData = new URLSearchParams();
-    formData.append('apiKey', BIZAPP_API_KEY);
-    formData.append('category', BIZAPP_CATEGORY);
-    formData.append('name', 'LRC Course Booking');
-    formData.append('amount', parseFloat(amount).toFixed(2));
-    formData.append('payer_name', customerName);
-    formData.append('payer_email', customerEmail);
-    formData.append('payer_phone', customerPhone);
-    formData.append('webreturn_url', `https://lrc-course.vercel.app/#/confirmation?bookingId=${bookingId}`);
-    formData.append('callback_url', `https://bizappaywebhook-2n7sc53hoa-uc.a.run.app`);
-    formData.append('ext_reference', bookingId);
-    formData.append('billcode', bookingId); 
+  const formData = new URLSearchParams();
+  formData.append('apiKey', BIZAPP_API_KEY);
+  formData.append('category', BIZAPP_CATEGORY);
+  formData.append('name', 'LRC Course Booking');
+  formData.append('amount', parseFloat(amount).toFixed(2));
+  formData.append('payer_name', customerName);
+  formData.append('payer_email', customerEmail);
+  formData.append('payer_phone', customerPhone);
+  formData.append('webreturn_url', `https://lrc-course.vercel.app/#/confirmation?bookingId=${bookingId}`);
+  formData.append('callback_url', `https://bizappaywebhook-2n7sc53hoa-uc.a.run.app`);
+  formData.append('ext_reference', bookingId);
+  formData.append('billcode', bookingId); 
 
-    const response = await axios.post('https://bizappay.my/api/v3/bill/create', formData, {
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Authentication': authToken }
-    });
-    return { url: response.data?.url || response.data?.data?.url };
-  } catch (err) {
-    throw new Error("Bill creation failed: " + err.message);
-  }
+  const response = await axios.post('https://bizappay.my/api/v3/bill/create', formData, {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Authentication': authToken }
+  });
+  return { url: response.data?.url || response.data?.data?.url };
 });
 
-// 2. Automatic Webhook (Improved Parsing)
+// 5. WEBHOOK (Preserved Decoding)
 exports.bizappayWebhook = onRequest(async (req, res) => {
   let data = { ...req.query, ...req.body };
-  
   if (Buffer.isBuffer(req.body)) {
     const rawText = req.body.toString('utf-8');
     const matches = rawText.matchAll(/name="([^"]+)"\r\n\r\n([\s\S]+?)\r\n/g);
     for (const match of matches) { data[match[1]] = match[2].trim(); }
   }
-
   const bookingId = (data.billcode || data.ext_reference || "").trim().replace(/[.]/g, '');
-  const status = String(data.billstatus || data.status || "").replace(/[^0-9a-zA-Z]/g, '');
-
-  console.log(`WEBHOOK RECEIVED: ID=${bookingId}, Status=${status}`);
+  const status = String(data.billstatus || data.status || "");
 
   if (status === '1' || status.toLowerCase() === 'paid') {
     await processSuccessfulPayment(bookingId);
@@ -165,16 +142,11 @@ exports.bizappayWebhook = onRequest(async (req, res) => {
   res.status(200).send("OK");
 });
 
-// 3. Manual Sync (CORS enabled for Frontend Button)
+// 6. MANUAL SYNC (Preserved)
 exports.manualAdminUpdate = onRequest({ cors: true }, async (req, res) => {
   const { bookingId } = req.query;
-  if (!bookingId) return res.status(400).send("Missing bookingId");
-
   try {
     const result = await processSuccessfulPayment(bookingId);
     res.status(200).send(result);
-  } catch (err) { 
-    console.error("Manual Sync Error:", err.message);
-    res.status(500).send("Sync Error: " + err.message); 
-  }
+  } catch (err) { res.status(500).send(err.message); }
 });
