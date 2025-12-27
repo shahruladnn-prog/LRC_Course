@@ -16,7 +16,7 @@ const StorefrontHeader: React.FC = () => {
                  <Logo />
                 <div className="flex items-center gap-2 sm:gap-4">
                     <Link to="/cart" className="relative flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 px-3 sm:px-4 rounded-lg transition-colors duration-300">
-                        {/* FIXED SVG: Corrected the path string that caused console errors */}
+                        {/* FIXED SVG: Replaced the malformed path coordinates */}
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4h-1.5" />
                         </svg>
@@ -49,7 +49,6 @@ const CourseBookingCard: React.FC<{ course: Course }> = ({ course }) => {
     const fetchSessions = async () => {
       setIsLoadingSessions(true);
       const sessionsData = await getSessionsForCourse(course.id);
-      
       const sortedSessions = sessionsData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
       setSessions(sortedSessions);
 
@@ -90,7 +89,7 @@ const CourseBookingCard: React.FC<{ course: Course }> = ({ course }) => {
 
   const selectedSession = sessions.find(s => s.id === selectedSessionId);
   
-  // FIXED: Added missing logic to detect if item is in cart
+  // CRITICAL FIX: Defined isItemInCart before it is used in the JSX
   const isItemInCart = items.some(item => item.cartId === `${course.id}-${selectedSessionId}`);
   
   const existingCartItem = selectedSessionId ? items.find(item => item.cartId === `${course.id}-${selectedSessionId}`) : undefined;
@@ -178,7 +177,7 @@ const CourseBookingCard: React.FC<{ course: Course }> = ({ course }) => {
                 disabled={!selectedSession || availableSlotsForBooking <= 0}
                 className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out hover:bg-indigo-700 disabled:bg-slate-400 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
             >
-                {/* FIXED: The ReferenceError occurred here because isItemInCart was missing */}
+                {/* Reference fixed */}
                 {isItemInCart ? `Add ${quantity} More` : `Add ${quantity} to Cart`}
             </button>
         </div>
