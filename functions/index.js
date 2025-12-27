@@ -5,7 +5,7 @@ const axios = require("axios");
 admin.initializeApp();
 const db = admin.firestore();
 
-// --- CREDENTIALS (Preserved from your Repomix) ---
+// --- CREDENTIALS (Preserved) ---
 const BIZAPP_API_KEY = "83ndoryq-aaaw-v5lj-3tiy-2t4cuygj9rvn";
 const BIZAPP_CATEGORY = "w4zw0teb"; 
 const LOYVERSE_TOKEN = "d9d14fd02ac34292ab50e221da50ddb3";
@@ -17,7 +17,6 @@ const loyverseApi = axios.create({
   headers: { "Authorization": `Bearer ${LOYVERSE_TOKEN}` },
 });
 
-// SHARED LOGIC: Deducts slots and syncs to Loyverse
 async function processSuccessfulPayment(bookingId) {
   console.log(`--- Processing Payment for ID: ${bookingId} ---`);
   
@@ -26,16 +25,12 @@ async function processSuccessfulPayment(bookingId) {
   let bookingDoc = await bookingRef.get();
 
   if (!bookingDoc.exists) {
-    console.log("Direct match failed. Searching all bookings for case-insensitive match...");
     const snapshot = await db.collection("bookings").get();
     const match = snapshot.docs.find(d => d.id.toLowerCase() === bookingId.toLowerCase());
-    
     if (match) {
       bookingDoc = match;
       bookingRef = match.ref;
-      console.log(`Found match with real ID: ${match.id}`);
     } else {
-      console.error(`ID ${bookingId} not found in database.`);
       return `Error: ID ${bookingId} not found.`;
     }
   }
@@ -43,29 +38,29 @@ async function processSuccessfulPayment(bookingId) {
   const bookingData = bookingDoc.data();
   if (bookingData.paymentStatus === 'paid') return "Already paid.";
 
-  // 2. INVENTORY DEDUCTION
+  // 2. UPDATE FIRESTORE AND SLOTS FIRST (This ensures the UI updates)
   const sessionSnapshots = [];
   for (const item of bookingData.items) {
     const sDoc = await db.collection("sessions").doc(item.sessionId).get();
     if (sDoc.exists) {
-      sessionSnapshots.push({ 
-        id: item.sessionId, 
-        current: sDoc.data().remainingSlots || 0, 
-        qty: item.quantity 
-      });
+      sessionSnapshots.push({ id: item.sessionId, current: sDoc.data().remainingSlots || 0, qty: item.quantity });
     }
   }
 
-  await db.runTransaction(async (t) => {
-    t.update(bookingRef, { paymentStatus: 'paid' });
-    for (const s of sessionSnapshots) {
-      t.update(db.collection("sessions").doc(s.id), { 
-        remainingSlots: Math.max(0, s.current - s.qty) 
-      });
-    }
-  });
+  try {
+    await db.runTransaction(async (t) => {
+      t.update(bookingRef, { paymentStatus: 'paid' });
+      for (const s of sessionSnapshots) {
+        t.update(db.collection("sessions").doc(s.id), { remainingSlots: Math.max(0, s.current - s.qty) });
+      }
+    });
+    console.log("Firestore updated to PAID.");
+  } catch (err) {
+    console.error("DB Update Failed:", err.message);
+    throw err;
+  }
 
-  // 3. LOYVERSE SYNC (Try-Catch Protected)
+  // 3. LOYVERSE SYNC (Now independent - failure here won't stop the UI)
   try {
     const lineItems = [];
     for (const item of bookingData.items) {
@@ -74,11 +69,7 @@ async function processSuccessfulPayment(bookingId) {
       if (sku) {
         const vRes = await loyverseApi.get(`/variants?sku=${sku}`);
         if (vRes.data.variants?.length > 0) {
-          lineItems.push({ 
-            variant_id: vRes.data.variants[0].id, 
-            quantity: item.quantity, 
-            price: item.price 
-          });
+          lineItems.push({ variant_id: vRes.data.variants[0].id, quantity: item.quantity, price: item.price });
         }
       }
     }
@@ -92,13 +83,13 @@ async function processSuccessfulPayment(bookingId) {
       console.log("Loyverse sync successful.");
     }
   } catch (err) {
-    console.error("Loyverse Sync Failed (DB is still updated):", err.message);
+    console.error("Loyverse Failed (But DB is updated):", err.message);
   }
 
   return `Successfully updated ${bookingId}`;
 }
 
-// 4. BIZAPPAY BILL CREATION (Preserved)
+// 4, 5, 6: createBizappayBill, webhook, manualAdminUpdate remain exactly as you have them.
 exports.createBizappayBill = onCall({ cors: true }, async (request) => {
   const { bookingId, amount, customerName, customerEmail, customerPhone } = request.data;
   const loginData = new URLSearchParams();
@@ -125,7 +116,6 @@ exports.createBizappayBill = onCall({ cors: true }, async (request) => {
   return { url: response.data?.url || response.data?.data?.url };
 });
 
-// 5. WEBHOOK (Preserved Decoding)
 exports.bizappayWebhook = onRequest(async (req, res) => {
   let data = { ...req.query, ...req.body };
   if (Buffer.isBuffer(req.body)) {
@@ -142,7 +132,6 @@ exports.bizappayWebhook = onRequest(async (req, res) => {
   res.status(200).send("OK");
 });
 
-// 6. MANUAL SYNC (Preserved)
 exports.manualAdminUpdate = onRequest({ cors: true }, async (req, res) => {
   const { bookingId } = req.query;
   try {
