@@ -16,7 +16,10 @@ const StorefrontHeader: React.FC = () => {
                  <Logo />
                 <div className="flex items-center gap-2 sm:gap-4">
                     <Link to="/cart" className="relative flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 px-3 sm:px-4 rounded-lg transition-colors duration-300">
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 S17 21 17 21a2 2 0 100-4zM7.707 15.293a1 1 0 00-1.414 1.414L10 20.414l8.293-8.293a1 1 0 00-1.414-1.414L10 17.586l-3.293-3.293zM15 11H9m6 0a2 2 0 012 2v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6a2 2 0 012-2h6z"/></svg>
+                        {/* FIXED SVG: Corrected the path string that caused console errors */}
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4h-1.5" />
+                        </svg>
                         <span className="hidden sm:inline">Cart</span>
                         {totalItems > 0 && (
                             <span className="absolute -top-2 -right-2 bg-indigo-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center ring-2 ring-white">
@@ -47,17 +50,14 @@ const CourseBookingCard: React.FC<{ course: Course }> = ({ course }) => {
       setIsLoadingSessions(true);
       const sessionsData = await getSessionsForCourse(course.id);
       
-      // Sort sessions by date so they appear in order
       const sortedSessions = sessionsData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
       setSessions(sortedSessions);
 
-      // Select the first session that actually has slots
       const firstAvailable = sortedSessions.find(s => s.remainingSlots > 0);
       if (firstAvailable) {
         setSelectedSessionId(firstAvailable.id);
         setIsFullyBooked(false);
       } else {
-        // If everything is RM0, select the first one but mark as fully booked
         setSelectedSessionId(sortedSessions[0]?.id || null);
         setIsFullyBooked(sortedSessions.length > 0);
       }
@@ -66,7 +66,6 @@ const CourseBookingCard: React.FC<{ course: Course }> = ({ course }) => {
     fetchSessions();
   }, [course.id]);
 
-  // FIXED: Reset quantity logic to prevent being stuck at 0
   useEffect(() => {
     setQuantity(1);
   }, [selectedSessionId]);
@@ -90,6 +89,10 @@ const CourseBookingCard: React.FC<{ course: Course }> = ({ course }) => {
   };
 
   const selectedSession = sessions.find(s => s.id === selectedSessionId);
+  
+  // FIXED: Added missing logic to detect if item is in cart
+  const isItemInCart = items.some(item => item.cartId === `${course.id}-${selectedSessionId}`);
+  
   const existingCartItem = selectedSessionId ? items.find(item => item.cartId === `${course.id}-${selectedSessionId}`) : undefined;
   const availableSlotsForBooking = selectedSession ? selectedSession.remainingSlots - (existingCartItem?.quantity || 0) : 0;
 
@@ -125,7 +128,6 @@ const CourseBookingCard: React.FC<{ course: Course }> = ({ course }) => {
                         <select 
                             onChange={(e) => setSelectedSessionId(e.target.value)} 
                             value={selectedSessionId || ""}
-                            // FIXED: Dropped 'disabled' condition that was locking the choice
                             className="block w-full px-3 py-2 border border-slate-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm transition"
                         >
                             {sessions.length === 0 && <option disabled>No sessions available</option>}
@@ -176,6 +178,7 @@ const CourseBookingCard: React.FC<{ course: Course }> = ({ course }) => {
                 disabled={!selectedSession || availableSlotsForBooking <= 0}
                 className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out hover:bg-indigo-700 disabled:bg-slate-400 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
             >
+                {/* FIXED: The ReferenceError occurred here because isItemInCart was missing */}
                 {isItemInCart ? `Add ${quantity} More` : `Add ${quantity} to Cart`}
             </button>
         </div>
@@ -202,7 +205,6 @@ const Storefront: React.FC = () => {
             setIsLoading(true);
             try {
                 const allCourses = await getCourses();
-                // Only show courses that are not marked as hidden
                 const visibleCourses = allCourses.filter(course => !course.isHidden);
                 setCourses(visibleCourses);
             } catch (error) {
