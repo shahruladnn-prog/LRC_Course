@@ -100,7 +100,10 @@ async function syncBookingToLoyverse(bookingData, bookingRef) {
         note: `Online Booking: ${bookingData.billcode}` // Extra visibility
       });
       console.log("Loyverse Receipt Created Successfully.");
-      await bookingRef.update({ syncStatus: 'synced', syncError: admin.firestore.FieldValue.delete() });
+      // Explicitly re-reference to ensure we have a valid DocRef
+      const finalRef = db.collection('bookings').doc(bookingData.id || bookingRef.id);
+      await finalRef.update({ syncStatus: 'synced', syncError: admin.firestore.FieldValue.delete() });
+      console.log(`DB UPDATED: Booking ${finalRef.id} syncStatus set to 'synced'`);
       return { success: true };
     } else {
       console.warn("Skipping Loyverse Sync: No valid line items resolved.");
@@ -109,7 +112,8 @@ async function syncBookingToLoyverse(bookingData, bookingRef) {
   } catch (err) {
     const errorMsg = err.response?.data ? JSON.stringify(err.response.data) : err.message;
     console.error("Loyverse Sync Failed:", errorMsg);
-    await bookingRef.update({ syncStatus: 'failed', syncError: errorMsg });
+    const failRef = db.collection('bookings').doc(bookingData.id || bookingRef.id);
+    await failRef.update({ syncStatus: 'failed', syncError: errorMsg });
     return { success: false, error: errorMsg };
   }
 }

@@ -60,4 +60,5 @@ export interface Booking {
         seconds: number;
         nanoseconds: number;
     } | Date; // Firestore timestamp
+    billcode?: string;
 }

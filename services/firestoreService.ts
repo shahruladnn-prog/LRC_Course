@@ -100,6 +100,10 @@ const bookingConverter = {
             totalAmount: typeof data.totalAmount === 'number' ? data.totalAmount : 0,
             paymentStatus: data.paymentStatus || 'pending',
             bookingDate: data.bookingDate || { seconds: 0, nanoseconds: 0 }, // prevent null date
+            // Explicitly map sync fields
+            syncStatus: data.syncStatus,
+            syncError: data.syncError,
+            billcode: data.billcode,
         };
     },
 };
