@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
-import { doc, onSnapshot } from 'firebase/firestore'; // Changed to onSnapshot
+import { doc, onSnapshot } from 'firebase/firestore'; 
 import { db } from '../services/firebase';
 import { Booking } from '../types';
 import Logo from '../components/common/Logo';

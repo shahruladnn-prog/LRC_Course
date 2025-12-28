@@ -1,6 +1,7 @@
 const { onCall, onRequest } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const axios = require("axios");
+const { HttpsError } = require("firebase-functions/v2/https");
 
 admin.initializeApp();
 const db = admin.firestore();
@@ -19,20 +20,20 @@ const loyverseApi = axios.create({
 
 // SHARED PROCESSING LOGIC
 async function processSuccessfulPayment(billcode, amount) {
-  // TRIM FIX: Critical for matching IDs correctly
+  // 1. CLEAN THE ID (Removes hidden spaces that cause match failures)
   const cleanId = String(billcode).trim();
   console.log(`--- WEBHOOK SEARCH: ID=${cleanId}, AMT=${amount} ---`);
   
-  // 1. Get all pending bookings
+  // 2. GET PENDING BOOKINGS
   const snapshot = await db.collection("bookings").where("paymentStatus", "==", "pending").get();
   
-  // 2. SEARCH 1: Match by ID or Saved Field
+  // 3. PRIMARY SEARCH: Match by ID (Case Insensitive)
   let match = snapshot.docs.find(d => 
     d.id.toLowerCase() === cleanId.toLowerCase() || 
     (d.data().billcode && String(d.data().billcode).trim().toLowerCase() === cleanId.toLowerCase())
   );
 
-  // 3. SEARCH 2 (The Backup): Match by Amount
+  // 4. BACKUP SEARCH: Match by Amount (The "Safety Net")
   if (!match && amount) {
     console.log(`ID Match failed. Hunting for ANY booking with amount: RM${amount}`);
     match = snapshot.docs.find(d => Math.abs(parseFloat(d.data().totalAmount) - parseFloat(amount)) < 0.01);
@@ -46,7 +47,7 @@ async function processSuccessfulPayment(billcode, amount) {
   const bookingRef = match.ref;
   const bookingData = match.data();
 
-  // 4. Update Database & Slots
+  // 5. UPDATE DATABASE & SLOTS
   const sessionSnapshots = [];
   try {
     if (bookingData.items) {
@@ -67,7 +68,7 @@ async function processSuccessfulPayment(billcode, amount) {
   });
   console.log(`SUCCESS: Booking ${bookingRef.id} marked as PAID.`);
 
-  // 5. Loyverse (Isolated with FULL ERROR LOGGING)
+  // 6. LOYVERSE SYNC (With Full Error Logging)
   try {
     const lineItems = [];
     if (bookingData.items) {
@@ -96,44 +97,61 @@ async function processSuccessfulPayment(billcode, amount) {
       console.log("Loyverse Receipt Created.");
     }
   } catch (err) { 
-      // ERROR LOGGING FIX
       console.error("Loyverse Error Details:", err.response?.data || err.message); 
   }
 }
 
-// 1. BILL CREATION
+// 1. BILL CREATION (Fixed: Removed forced billcode to prevent API error)
 exports.createBizappayBill = onCall({ cors: true }, async (request) => {
-  const { bookingId, amount, customerName, customerEmail, customerPhone } = request.data;
+  console.log("1. Starting Bill Creation for:", request.data.bookingId);
   
-  const loginData = new URLSearchParams();
-  loginData.append('apiKey', BIZAPP_API_KEY);
-  const tokenRes = await axios.post('https://bizappay.my/api/v3/token', loginData);
-  const authToken = tokenRes.data?.token || tokenRes.data?.data?.token;
+  try {
+    const { bookingId, amount, customerName, customerEmail, customerPhone } = request.data;
+    
+    // Auth
+    const loginData = new URLSearchParams();
+    loginData.append('apiKey', BIZAPP_API_KEY);
+    const tokenRes = await axios.post('https://bizappay.my/api/v3/token', loginData);
+    const authToken = tokenRes.data?.token || tokenRes.data?.data?.token;
 
-  const formData = new URLSearchParams();
-  formData.append('apiKey', BIZAPP_API_KEY);
-  formData.append('category', BIZAPP_CATEGORY);
-  formData.append('name', 'LRC Course Booking');
-  formData.append('amount', parseFloat(amount).toFixed(2));
-  formData.append('payer_name', customerName);
-  formData.append('payer_email', customerEmail);
-  formData.append('payer_phone', customerPhone);
-  formData.append('webreturn_url', `https://lrc-course.vercel.app/#/confirmation?bookingId=${bookingId}`);
-  formData.append('callback_url', `https://bizappaywebhook-2n7sc53hoa-uc.a.run.app`);
-  formData.append('ext_reference', bookingId);
+    // Build Request
+    const formData = new URLSearchParams();
+    formData.append('apiKey', BIZAPP_API_KEY);
+    formData.append('category', BIZAPP_CATEGORY);
+    formData.append('name', 'LRC Course Booking');
+    formData.append('amount', parseFloat(amount).toFixed(2));
+    formData.append('payer_name', customerName);
+    formData.append('payer_email', customerEmail);
+    formData.append('payer_phone', customerPhone);
+    formData.append('webreturn_url', `https://lrc-course.vercel.app/#/confirmation?bookingId=${bookingId}`);
+    formData.append('callback_url', `https://bizappaywebhook-2n7sc53hoa-uc.a.run.app`);
+    formData.append('ext_reference', bookingId); 
+    // NOTE: 'billcode' parameter is intentionally REMOVED here.
 
-  const response = await axios.post('https://bizappay.my/api/v3/bill/create', formData, {
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Authentication': authToken }
-  });
+    console.log("2. Sending Request to Bizappay...");
+    const response = await axios.post('https://bizappay.my/api/v3/bill/create', formData, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Authentication': authToken }
+    });
 
-  const bCode = response.data?.data?.billcode || response.data?.billcode;
-  
-  if (bCode) {
-    const bookingRef = db.collection("bookings").doc(bookingId);
-    await bookingRef.set({ billcode: bCode }, { merge: true });
+    const bCode = response.data?.data?.billcode || response.data?.billcode;
+    const paymentUrl = response.data?.url || response.data?.data?.url;
+    
+    if (!paymentUrl) {
+        throw new HttpsError('aborted', `Payment Gateway did not return a URL. Response: ${JSON.stringify(response.data)}`);
+    }
+
+    // SAVE THE BILLCODE (Critical for verification)
+    if (bCode) {
+      await db.collection("bookings").doc(bookingId).set({ billcode: bCode }, { merge: true });
+      console.log(`3. Saved Billcode ${bCode} to database.`);
+    }
+
+    return { url: paymentUrl };
+
+  } catch (error) {
+    console.error("BILL CREATION ERROR:", error.response?.data || error.message);
+    throw new HttpsError('internal', "Failed to create payment bill.");
   }
-
-  return { url: response.data?.url || response.data?.data?.url };
 });
 
 // 2. WEBHOOK
