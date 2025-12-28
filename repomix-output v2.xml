@@ -2072,38 +2072,6 @@ export default defineConfig(({ mode }) => {
 }
 </file>
 
-<file path="index.html">
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>LRC Course Booking</title>
-    
-    <script src="https://cdn.tailwindcss.com"></script>
-
-    <script type="importmap">
-    {
-      "imports": {
-        "react": "https://esm.sh/react@18.2.0",
-        "react-dom": "https://esm.sh/react-dom@18.2.0",
-        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
-        "react-router-dom": "https://esm.sh/react-router-dom@6.22.0",
-        "firebase/app": "https://esm.sh/firebase@10.8.0/app",
-        "firebase/firestore": "https://esm.sh/firebase@10.8.0/firestore",
-        "firebase/functions": "https://esm.sh/firebase@10.8.0/functions"
-      }
-    }
-    </script>
-  </head>
-  <body class="bg-slate-50">
-    <div id="root"></div>
-    <script type="module" src="/src/index.tsx"></script>
-  </body>
-</html>
-</file>
-
 <file path="package.json">
 {
   "name": "lrc-course",
@@ -2376,128 +2344,36 @@ const BookingsManagement: React.FC = () => {
 export default BookingsManagement;
 </file>
 
-<file path="functions/index.js">
-const { onCall, onRequest } = require("firebase-functions/v2/https");
-const admin = require("firebase-admin");
-const axios = require("axios");
+<file path="index.html">
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>LRC Course Booking</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
 
-admin.initializeApp();
-const db = admin.firestore();
-
-// --- CREDENTIALS ---
-const BIZAPP_API_KEY = "83ndoryq-aaaw-v5lj-3tiy-2t4cuygj9rvn";
-const BIZAPP_CATEGORY = "w4zw0teb"; 
-const LOYVERSE_TOKEN = "d9d14fd02ac34292ab50e221da50ddb3";
-const LOYVERSE_STORE_ID = "7611fff5-5af4-43e4-8758-3f06a1090eed";
-const LOYVERSE_PAYMENT_ID = "df4f339c-c806-4cf0-83c9-43ef624a78ac";
-
-const loyverseApi = axios.create({
-  baseURL: "https://api.loyverse.com/v1.0",
-  headers: { "Authorization": `Bearer ${LOYVERSE_TOKEN}` },
-});
-
-// SHARED LOGIC: Deducts slots and syncs to Loyverse
-async function processSuccessfulPayment(bookingId) {
-  const bookingRef = db.collection("bookings").doc(bookingId);
-  const bookingDoc = await bookingRef.get();
-
-  if (!bookingDoc.exists) return `ID ${bookingId} not found in database.`;
-  if (bookingDoc.data().paymentStatus === 'paid') return `ID ${bookingId} is already paid.`;
-
-  const bookingData = bookingDoc.data();
-  const sessionSnapshots = [];
-
-  // Read Phase: Get all slot counts
-  for (const item of bookingData.items) {
-    const sDoc = await db.collection("sessions").doc(item.sessionId).get();
-    if (sDoc.exists) {
-      sessionSnapshots.push({ id: item.sessionId, currentSlots: sDoc.data().remainingSlots || 0, qty: item.quantity });
-    }
-  }
-
-  // Write Phase: Transactional update
-  await db.runTransaction(async (t) => {
-    t.update(bookingRef, { paymentStatus: 'paid' });
-    for (const s of sessionSnapshots) {
-      t.update(db.collection("sessions").doc(s.id), { remainingSlots: Math.max(0, s.currentSlots - s.qty) });
-    }
-  });
-
-  // Loyverse Phase
-  const lineItems = [];
-  for (const item of bookingData.items) {
-    const courseDoc = await db.collection("courses").doc(item.courseId).get();
-    const sku = courseDoc.data()?.sku;
-    if (sku) {
-      const vRes = await loyverseApi.get(`/variants?sku=${sku}`);
-      if (vRes.data.variants?.length > 0) {
-        lineItems.push({ variant_id: vRes.data.variants[0].id, quantity: item.quantity, price: item.price });
+    <script type="importmap">
+    {
+      "imports": {
+        "react": "https://esm.sh/react@18.2.0",
+        "react-dom": "https://esm.sh/react-dom@18.2.0",
+        "react-dom/client": "https://esm.sh/react-dom@18.2.0/client",
+        "react-router-dom": "https://esm.sh/react-router-dom@6.22.0",
+        "firebase/app": "https://esm.sh/firebase@10.8.0/app",
+        "firebase/firestore": "https://esm.sh/firebase@10.8.0/firestore",
+        "firebase/functions": "https://esm.sh/firebase@10.8.0/functions"
       }
     }
-  }
-
-  if (lineItems.length > 0) {
-    await loyverseApi.post("/receipts", {
-      store_id: LOYVERSE_STORE_ID,
-      line_items: lineItems,
-      payments: [{ payment_type_id: LOYVERSE_PAYMENT_ID, amount: bookingData.totalAmount }]
-    });
-  }
-  return `Successfully updated Booking ${bookingId}`;
-}
-
-// 1. Create Bizappay Bill
-exports.createBizappayBill = onCall({ cors: true }, async (request) => {
-  const { bookingId, amount, customerName, customerEmail, customerPhone } = request.data;
-  const loginData = new URLSearchParams();
-  loginData.append('apiKey', BIZAPP_API_KEY);
-  const tokenRes = await axios.post('https://bizappay.my/api/v3/token', loginData);
-  const authToken = tokenRes.data?.token || tokenRes.data?.data?.token;
-
-  const formData = new URLSearchParams();
-  formData.append('apiKey', BIZAPP_API_KEY);
-  formData.append('category', BIZAPP_CATEGORY);
-  formData.append('name', 'LRC Course Booking');
-  formData.append('amount', parseFloat(amount).toFixed(2));
-  formData.append('payer_name', customerName);
-  formData.append('payer_email', customerEmail);
-  formData.append('payer_phone', customerPhone);
-  formData.append('webreturn_url', `https://lrc-course.vercel.app/#/confirmation?bookingId=${bookingId}`);
-  formData.append('callback_url', `https://bizappaywebhook-2n7sc53hoa-uc.a.run.app`);
-  formData.append('ext_reference', bookingId);
-  formData.append('billcode', bookingId); 
-
-  const response = await axios.post('https://bizappay.my/api/v3/bill/create', formData, {
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Authentication': authToken }
-  });
-  return { url: response.data?.url || response.data?.data?.url };
-});
-
-// 2. Automatic Webhook
-exports.bizappayWebhook = onRequest(async (req, res) => {
-  let data = { ...req.query, ...req.body };
-  if (Buffer.isBuffer(req.body)) {
-    const rawText = req.body.toString('utf-8');
-    const matches = rawText.matchAll(/name="([^"]+)"\r\n\r\n([\s\S]+?)\r\n/g);
-    for (const match of matches) { data[match[1]] = match[2].trim(); }
-  }
-  const bookingId = (data.billcode || data.ext_reference || "").trim().replace(/[.]/g, '');
-  const status = String(data.billstatus || data.status || "").replace(/[^0-9a-zA-Z]/g, '');
-
-  if (status === '1' || status.toLowerCase() === 'paid') {
-    await processSuccessfulPayment(bookingId);
-  }
-  res.status(200).send("OK");
-});
-
-// 3. Manual Sync (CORS enabled for Frontend Button)
-exports.manualAdminUpdate = onRequest({ cors: true }, async (req, res) => {
-  const { bookingId } = req.query;
-  try {
-    const result = await processSuccessfulPayment(bookingId);
-    res.status(200).send(result);
-  } catch (err) { res.status(500).send(err.message); }
-});
+    </script>
+  </head>
+  <body class="bg-slate-50">
+    <div id="root"></div>
+    <script type="module" src="/index.tsx"></script>
+  </body>
+</html>
 </file>
 
 <file path="pages/CartPage.tsx">
@@ -2754,7 +2630,7 @@ const StorefrontHeader: React.FC = () => {
                  <Logo />
                 <div className="flex items-center gap-2 sm:gap-4">
                     <Link to="/cart" className="relative flex items-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 px-3 sm:px-4 rounded-lg transition-colors duration-300">
-                        {/* FIXED SVG: Corrected the path string that caused console errors */}
+                        {/* FIXED SVG: Replaced the malformed path coordinates */}
                         <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4h-1.5" />
                         </svg>
@@ -2787,7 +2663,6 @@ const CourseBookingCard: React.FC<{ course: Course }> = ({ course }) => {
     const fetchSessions = async () => {
       setIsLoadingSessions(true);
       const sessionsData = await getSessionsForCourse(course.id);
-      
       const sortedSessions = sessionsData.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
       setSessions(sortedSessions);
 
@@ -2828,7 +2703,7 @@ const CourseBookingCard: React.FC<{ course: Course }> = ({ course }) => {
 
   const selectedSession = sessions.find(s => s.id === selectedSessionId);
   
-  // FIXED: Added missing logic to detect if item is in cart
+  // CRITICAL FIX: Defined isItemInCart before it is used in the JSX
   const isItemInCart = items.some(item => item.cartId === `${course.id}-${selectedSessionId}`);
   
   const existingCartItem = selectedSessionId ? items.find(item => item.cartId === `${course.id}-${selectedSessionId}`) : undefined;
@@ -2916,7 +2791,7 @@ const CourseBookingCard: React.FC<{ course: Course }> = ({ course }) => {
                 disabled={!selectedSession || availableSlotsForBooking <= 0}
                 className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out hover:bg-indigo-700 disabled:bg-slate-400 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
             >
-                {/* FIXED: The ReferenceError occurred here because isItemInCart was missing */}
+                {/* Reference fixed */}
                 {isItemInCart ? `Add ${quantity} More` : `Add ${quantity} to Cart`}
             </button>
         </div>
@@ -2998,6 +2873,157 @@ const Storefront: React.FC = () => {
 };
 
 export default Storefront;
+</file>
+
+<file path="functions/index.js">
+const { onCall, onRequest } = require("firebase-functions/v2/https");
+const admin = require("firebase-admin");
+const axios = require("axios");
+
+admin.initializeApp();
+const db = admin.firestore();
+
+// --- CREDENTIALS ---
+const BIZAPP_API_KEY = "83ndoryq-aaaw-v5lj-3tiy-2t4cuygj9rvn";
+const BIZAPP_CATEGORY = "w4zw0teb"; 
+const LOYVERSE_TOKEN = "d9d14fd02ac34292ab50e221da50ddb3";
+const LOYVERSE_STORE_ID = "7611fff5-5af4-43e4-8758-3f06a1090eed";
+const LOYVERSE_PAYMENT_ID = "df4f339c-c806-4cf0-83c9-43ef624a78ac";
+
+const loyverseApi = axios.create({
+  baseURL: "https://api.loyverse.com/v1.0",
+  headers: { "Authorization": `Bearer ${LOYVERSE_TOKEN}` },
+});
+
+// THE SEARCH ENGINE
+async function processSuccessfulPayment(billcode, amount) {
+  console.log(`--- WEBHOOK SEARCH: ID=${billcode}, AMT=${amount} ---`);
+  
+  // 1. Get all pending bookings
+  const snapshot = await db.collection("bookings").where("paymentStatus", "==", "pending").get();
+  
+  // 2. SEARCH 1: Match by ID or Saved Field
+  let match = snapshot.docs.find(d => 
+    d.id.toLowerCase() === String(billcode).toLowerCase() || 
+    (d.data().billcode && String(d.data().billcode).toLowerCase() === String(billcode).toLowerCase())
+  );
+
+  // 3. SEARCH 2 (THE IRONCLAD): Match by Amount (Since billcode field is missing)
+  if (!match && amount) {
+    console.log(`ID Match failed. Hunting for ANY booking with amount: RM${amount}`);
+    match = snapshot.docs.find(d => Math.abs(parseFloat(d.data().totalAmount) - parseFloat(amount)) < 0.01);
+  }
+
+  if (!match) {
+    console.error("FATAL: No pending booking found matching this payment.");
+    return;
+  }
+
+  const bookingRef = match.ref;
+  const bookingData = match.data();
+
+  // 4. Update Database & Slots
+  const sessionSnapshots = [];
+  for (const item of bookingData.items) {
+    const sDoc = await db.collection("sessions").doc(item.sessionId).get();
+    if (sDoc.exists) sessionSnapshots.push({ id: item.sessionId, current: sDoc.data().remainingSlots || 0, qty: item.quantity });
+  }
+
+  await db.runTransaction(async (t) => {
+    t.update(bookingRef, { paymentStatus: 'paid', billcode: billcode });
+    for (const s of sessionSnapshots) {
+      t.update(db.collection("sessions").doc(s.id), { remainingSlots: Math.max(0, s.current - s.qty) });
+    }
+  });
+
+  // 5. Loyverse (Isolated)
+  try {
+    const lineItems = [];
+    for (const item of bookingData.items) {
+      const courseDoc = await db.collection("courses").doc(item.courseId).get();
+      const sku = courseDoc.data()?.sku;
+      if (sku) {
+        const vRes = await loyverseApi.get(`/variants?sku=${sku}`);
+        if (vRes.data.variants?.length > 0) {
+          lineItems.push({ variant_id: vRes.data.variants[0].id, quantity: item.quantity, price: item.price });
+        }
+      }
+    }
+    if (lineItems.length > 0) {
+      await loyverseApi.post("/receipts", {
+        store_id: LOYVERSE_STORE_ID,
+        line_items: lineItems,
+        payments: [{ payment_type_id: LOYVERSE_PAYMENT_ID, amount: bookingData.totalAmount }]
+      });
+    }
+  } catch (err) { console.error("Loyverse failed but DB is PAID."); }
+}
+
+// 1. BILL CREATION (Updated to ENSURE save happens)
+exports.createBizappayBill = onCall({ cors: true }, async (request) => {
+  const { bookingId, amount, customerName, customerEmail, customerPhone } = request.data;
+  
+  const loginData = new URLSearchParams();
+  loginData.append('apiKey', BIZAPP_API_KEY);
+  const tokenRes = await axios.post('https://bizappay.my/api/v3/token', loginData);
+  const authToken = tokenRes.data?.token || tokenRes.data?.data?.token;
+
+  const formData = new URLSearchParams();
+  formData.append('apiKey', BIZAPP_API_KEY);
+  formData.append('category', BIZAPP_CATEGORY);
+  formData.append('name', 'LRC Course Booking');
+  formData.append('amount', parseFloat(amount).toFixed(2));
+  formData.append('payer_name', customerName);
+  formData.append('payer_email', customerEmail);
+  formData.append('payer_phone', customerPhone);
+  formData.append('webreturn_url', `https://lrc-course.vercel.app/#/confirmation?bookingId=${bookingId}`);
+  formData.append('callback_url', `https://bizappaywebhook-2n7sc53hoa-uc.a.run.app`);
+  formData.append('ext_reference', bookingId);
+
+  const response = await axios.post('https://bizappay.my/api/v3/bill/create', formData, {
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Authentication': authToken }
+  });
+
+  const bCode = response.data?.data?.billcode || response.data?.billcode;
+  
+  // FORCE THE SAVE BEFORE RETURNING URL
+  if (bCode) {
+    const bookingRef = db.collection("bookings").doc(bookingId);
+    await bookingRef.set({ billcode: bCode }, { merge: true });
+    console.log(`Saved Billcode ${bCode} to ${bookingId}`);
+  }
+
+  return { url: response.data?.url || response.data?.data?.url };
+});
+
+// 2. WEBHOOK (The Raw Parser)
+exports.bizappayWebhook = onRequest(async (req, res) => {
+  let bCode = req.query.billcode || req.body.billcode;
+  let bStatus = req.query.billstatus || req.body.billstatus;
+  let bAmount = req.query.billamount || req.body.billamount;
+
+  if (req.rawBody) {
+    const raw = req.rawBody.toString();
+    const bc = raw.match(/name="billcode"\r\n\r\n(.*?)\r\n/);
+    const st = raw.match(/name="billstatus"\r\n\r\n(.*?)\r\n/);
+    const am = raw.match(/name="billamount"\r\n\r\n(.*?)\r\n/);
+    if (bc) bCode = bc[1].trim();
+    if (st) bStatus = st[1].trim();
+    if (am) bAmount = am[1].trim();
+  }
+
+  if (String(bStatus) === '1' || String(bStatus).toLowerCase() === 'paid') {
+    await processSuccessfulPayment(bCode, bAmount);
+  }
+  res.status(200).send("OK");
+});
+
+// 3. MANUAL ADMIN SYNC
+exports.manualAdminUpdate = onRequest({ cors: true }, async (req, res) => {
+  const { bookingId, amount } = req.query;
+  const result = await processSuccessfulPayment(bookingId, amount);
+  res.status(200).send(result);
+});
 </file>
 
 </files>

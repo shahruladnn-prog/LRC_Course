@@ -17,20 +17,22 @@ const loyverseApi = axios.create({
   headers: { "Authorization": `Bearer ${LOYVERSE_TOKEN}` },
 });
 
-// THE SEARCH ENGINE
+// SHARED PROCESSING LOGIC
 async function processSuccessfulPayment(billcode, amount) {
-  console.log(`--- WEBHOOK SEARCH: ID=${billcode}, AMT=${amount} ---`);
+  // TRIM FIX: Critical for matching IDs correctly
+  const cleanId = String(billcode).trim();
+  console.log(`--- WEBHOOK SEARCH: ID=${cleanId}, AMT=${amount} ---`);
   
   // 1. Get all pending bookings
   const snapshot = await db.collection("bookings").where("paymentStatus", "==", "pending").get();
   
   // 2. SEARCH 1: Match by ID or Saved Field
   let match = snapshot.docs.find(d => 
-    d.id.toLowerCase() === String(billcode).toLowerCase() || 
-    (d.data().billcode && String(d.data().billcode).toLowerCase() === String(billcode).toLowerCase())
+    d.id.toLowerCase() === cleanId.toLowerCase() || 
+    (d.data().billcode && String(d.data().billcode).trim().toLowerCase() === cleanId.toLowerCase())
   );
 
-  // 3. SEARCH 2 (THE IRONCLAD): Match by Amount (Since billcode field is missing)
+  // 3. SEARCH 2 (The Backup): Match by Amount
   if (!match && amount) {
     console.log(`ID Match failed. Hunting for ANY booking with amount: RM${amount}`);
     match = snapshot.docs.find(d => Math.abs(parseFloat(d.data().totalAmount) - parseFloat(amount)) < 0.01);
@@ -46,42 +48,60 @@ async function processSuccessfulPayment(billcode, amount) {
 
   // 4. Update Database & Slots
   const sessionSnapshots = [];
-  for (const item of bookingData.items) {
-    const sDoc = await db.collection("sessions").doc(item.sessionId).get();
-    if (sDoc.exists) sessionSnapshots.push({ id: item.sessionId, current: sDoc.data().remainingSlots || 0, qty: item.quantity });
-  }
+  try {
+    if (bookingData.items) {
+      for (const item of bookingData.items) {
+        if (item.sessionId) {
+            const sDoc = await db.collection("sessions").doc(item.sessionId).get();
+            if (sDoc.exists) sessionSnapshots.push({ id: item.sessionId, current: sDoc.data().remainingSlots || 0, qty: item.quantity });
+        }
+      }
+    }
+  } catch (e) { console.error("Error reading sessions:", e); }
 
   await db.runTransaction(async (t) => {
-    t.update(bookingRef, { paymentStatus: 'paid', billcode: billcode });
+    t.update(bookingRef, { paymentStatus: 'paid', billcode: cleanId });
     for (const s of sessionSnapshots) {
       t.update(db.collection("sessions").doc(s.id), { remainingSlots: Math.max(0, s.current - s.qty) });
     }
   });
+  console.log(`SUCCESS: Booking ${bookingRef.id} marked as PAID.`);
 
-  // 5. Loyverse (Isolated)
+  // 5. Loyverse (Isolated with FULL ERROR LOGGING)
   try {
     const lineItems = [];
-    for (const item of bookingData.items) {
-      const courseDoc = await db.collection("courses").doc(item.courseId).get();
-      const sku = courseDoc.data()?.sku;
-      if (sku) {
-        const vRes = await loyverseApi.get(`/variants?sku=${sku}`);
-        if (vRes.data.variants?.length > 0) {
-          lineItems.push({ variant_id: vRes.data.variants[0].id, quantity: item.quantity, price: item.price });
+    if (bookingData.items) {
+      for (const item of bookingData.items) {
+        const courseDoc = await db.collection("courses").doc(item.courseId).get();
+        const sku = courseDoc.data()?.sku;
+        if (sku) {
+          const vRes = await loyverseApi.get(`/variants?sku=${sku}`);
+          if (vRes.data.variants?.length > 0) {
+            lineItems.push({ variant_id: vRes.data.variants[0].id, quantity: item.quantity, price: item.price });
+          } else {
+             console.warn(`Loyverse SKU not found for: ${sku}`);
+          }
+        } else {
+            console.warn(`Course ${item.courseId} in Firebase has no SKU field.`);
         }
       }
     }
+    
     if (lineItems.length > 0) {
       await loyverseApi.post("/receipts", {
         store_id: LOYVERSE_STORE_ID,
         line_items: lineItems,
         payments: [{ payment_type_id: LOYVERSE_PAYMENT_ID, amount: bookingData.totalAmount }]
       });
+      console.log("Loyverse Receipt Created.");
     }
-  } catch (err) { console.error("Loyverse failed but DB is PAID."); }
+  } catch (err) { 
+      // ERROR LOGGING FIX
+      console.error("Loyverse Error Details:", err.response?.data || err.message); 
+  }
 }
 
-// 1. BILL CREATION (Updated to ENSURE save happens)
+// 1. BILL CREATION
 exports.createBizappayBill = onCall({ cors: true }, async (request) => {
   const { bookingId, amount, customerName, customerEmail, customerPhone } = request.data;
   
@@ -108,17 +128,15 @@ exports.createBizappayBill = onCall({ cors: true }, async (request) => {
 
   const bCode = response.data?.data?.billcode || response.data?.billcode;
   
-  // FORCE THE SAVE BEFORE RETURNING URL
   if (bCode) {
     const bookingRef = db.collection("bookings").doc(bookingId);
     await bookingRef.set({ billcode: bCode }, { merge: true });
-    console.log(`Saved Billcode ${bCode} to ${bookingId}`);
   }
 
   return { url: response.data?.url || response.data?.data?.url };
 });
 
-// 2. WEBHOOK (The Raw Parser)
+// 2. WEBHOOK
 exports.bizappayWebhook = onRequest(async (req, res) => {
   let bCode = req.query.billcode || req.body.billcode;
   let bStatus = req.query.billstatus || req.body.billstatus;
@@ -143,6 +161,6 @@ exports.bizappayWebhook = onRequest(async (req, res) => {
 // 3. MANUAL ADMIN SYNC
 exports.manualAdminUpdate = onRequest({ cors: true }, async (req, res) => {
   const { bookingId, amount } = req.query;
-  const result = await processSuccessfulPayment(bookingId, amount);
-  res.status(200).send(result);
+  await processSuccessfulPayment(bookingId, amount);
+  res.status(200).send("Sync Complete");
 });
