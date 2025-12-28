@@ -5,58 +5,58 @@ import { Course, Session, Category, Booking, BookingItem } from '../types';
 
 // Firestore converter to ensure type safety
 const courseConverter = {
-  toFirestore(course: WithFieldValue<Course>): DocumentData {
-    return { 
-        name: course.name, 
-        price: course.price, 
-        category: course.category, 
-        termsAndConditions: course.termsAndConditions,
-        isHidden: course.isHidden,
-        importantHighlight: course.importantHighlight || '',
-        sku: course.sku,
-    };
-  },
-  fromFirestore(
-    snapshot: QueryDocumentSnapshot,
-    options: SnapshotOptions
-  ): Course {
-    const data = snapshot.data(options)!;
-    return {
-      id: snapshot.id,
-      name: data.name,
-      price: data.price,
-      category: data.category,
-      termsAndConditions: data.termsAndConditions,
-      isHidden: data.isHidden || false, // Default to false if not set
-      importantHighlight: data.importantHighlight || '',
-      sku: data.sku || '', // Default to empty string if not set
-    };
-  },
+    toFirestore(course: WithFieldValue<Course>): DocumentData {
+        return {
+            name: course.name,
+            price: course.price,
+            category: course.category,
+            termsAndConditions: course.termsAndConditions,
+            isHidden: course.isHidden,
+            importantHighlight: course.importantHighlight || '',
+            sku: course.sku,
+        };
+    },
+    fromFirestore(
+        snapshot: QueryDocumentSnapshot,
+        options: SnapshotOptions
+    ): Course {
+        const data = snapshot.data(options)!;
+        return {
+            id: snapshot.id,
+            name: data.name,
+            price: data.price,
+            category: data.category,
+            termsAndConditions: data.termsAndConditions,
+            isHidden: data.isHidden || false, // Default to false if not set
+            importantHighlight: data.importantHighlight || '',
+            sku: data.sku || '', // Default to empty string if not set
+        };
+    },
 };
 
 const sessionConverter = {
     toFirestore(session: WithFieldValue<Session>): DocumentData {
-      return { 
-          courseId: session.courseId, 
-          date: session.date, 
-          totalSlots: session.totalSlots,
-          remainingSlots: session.remainingSlots,
-      };
+        return {
+            courseId: session.courseId,
+            date: session.date,
+            totalSlots: session.totalSlots,
+            remainingSlots: session.remainingSlots,
+        };
     },
     fromFirestore(
-      snapshot: QueryDocumentSnapshot,
-      options: SnapshotOptions
+        snapshot: QueryDocumentSnapshot,
+        options: SnapshotOptions
     ): Session {
-      const data = snapshot.data(options)!;
-      return {
-        id: snapshot.id,
-        courseId: data.courseId,
-        date: data.date,
-        totalSlots: data.totalSlots,
-        remainingSlots: data.remainingSlots,
-      };
+        const data = snapshot.data(options)!;
+        return {
+            id: snapshot.id,
+            courseId: data.courseId,
+            date: data.date,
+            totalSlots: data.totalSlots,
+            remainingSlots: data.remainingSlots,
+        };
     },
-  };
+};
 
 const categoryConverter = {
     toFirestore(category: WithFieldValue<Category>): DocumentData {
@@ -93,34 +93,34 @@ const bookingConverter = {
         const data = snapshot.data(options)!;
         return {
             id: snapshot.id,
-            customerFullName: data.customerFullName,
-            customerPhone: data.customerPhone,
-            customerEmail: data.customerEmail,
-            items: data.items,
-            totalAmount: data.totalAmount,
-            paymentStatus: data.paymentStatus,
-            bookingDate: data.bookingDate,
+            customerFullName: data.customerFullName || 'Unknown',
+            customerPhone: data.customerPhone || '',
+            customerEmail: data.customerEmail || '',
+            items: Array.isArray(data.items) ? data.items.filter((i: any) => i && typeof i === 'object') : [], // Ensure array of objects
+            totalAmount: typeof data.totalAmount === 'number' ? data.totalAmount : 0,
+            paymentStatus: data.paymentStatus || 'pending',
+            bookingDate: data.bookingDate || { seconds: 0, nanoseconds: 0 }, // prevent null date
         };
     },
 };
 
 // Course Functions
 export const getCourses = async (): Promise<Course[]> => {
-  const coursesCol = collection(db, 'courses').withConverter(courseConverter);
-  const courseSnapshot = await getDocs(coursesCol);
-  return courseSnapshot.docs.map(doc => doc.data());
+    const coursesCol = collection(db, 'courses').withConverter(courseConverter);
+    const courseSnapshot = await getDocs(coursesCol);
+    return courseSnapshot.docs.map(doc => doc.data());
 };
 
 export const addCourse = async (courseData: Omit<Course, 'id'>) => {
-  await addDoc(collection(db, 'courses').withConverter(courseConverter), {
-      ...courseData,
-      isHidden: false, // Default to not hidden
-  });
+    await addDoc(collection(db, 'courses').withConverter(courseConverter), {
+        ...courseData,
+        isHidden: false, // Default to not hidden
+    });
 };
 
 export const updateCourse = async (courseId: string, courseData: Partial<Course>) => {
-  const courseRef = doc(db, 'courses', courseId).withConverter(courseConverter);
-  await updateDoc(courseRef, courseData);
+    const courseRef = doc(db, 'courses', courseId).withConverter(courseConverter);
+    await updateDoc(courseRef, courseData);
 };
 
 export const deleteCourse = async (courseId: string) => {
@@ -136,7 +136,7 @@ export const deleteCourse = async (courseId: string) => {
     sessionSnapshot.forEach((doc) => {
         batch.delete(doc.ref);
     });
-    
+
     // 3. Commit the batched write
     await batch.commit();
 };
@@ -144,9 +144,9 @@ export const deleteCourse = async (courseId: string) => {
 
 // Session Functions
 export const getSessionsForCourse = async (courseId: string): Promise<Session[]> => {
-  const q = query(collection(db, 'sessions'), where('courseId', '==', courseId)).withConverter(sessionConverter);
-  const sessionSnapshot = await getDocs(q);
-  return sessionSnapshot.docs.map(doc => doc.data());
+    const q = query(collection(db, 'sessions'), where('courseId', '==', courseId)).withConverter(sessionConverter);
+    const sessionSnapshot = await getDocs(q);
+    return sessionSnapshot.docs.map(doc => doc.data());
 };
 
 export const addSession = async (sessionData: Omit<Session, 'id'>) => {

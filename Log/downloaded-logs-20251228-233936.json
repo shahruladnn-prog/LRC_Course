@@ -1,0 +1,1034 @@
+[
+  {
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "authenticationInfo": {
+        "principalEmail": "service-913794600574@gcf-admin-robot.iam.gserviceaccount.com"
+      },
+      "requestMetadata": {
+        "requestAttributes": {
+          "time": "2025-12-28T14:49:55.807613Z",
+          "auth": {}
+        },
+        "destinationAttributes": {}
+      },
+      "serviceName": "run.googleapis.com",
+      "methodName": "google.cloud.serverless.internal.InternalServices.CreateInternalService",
+      "authorizationInfo": [
+        {
+          "resource": "namespaces/courses-43ee6/services/synctoloyverse",
+          "permission": "run.services.create",
+          "granted": true,
+          "resourceAttributes": {},
+          "permissionType": "ADMIN_WRITE"
+        },
+        {
+          "resource": "namespaces/courses-43ee6/services/synctoloyverse",
+          "permission": "run.services.create",
+          "granted": true,
+          "resourceAttributes": {
+            "service": "run.googleapis.com/",
+            "name": "namespaces/courses-43ee6/services/synctoloyverse",
+            "type": "run.googleapis.com/Service"
+          },
+          "permissionType": "ADMIN_WRITE"
+        }
+      ],
+      "resourceName": "namespaces/courses-43ee6/services/synctoloyverse",
+      "resourceLocation": {
+        "currentLocations": [
+          "us-central1"
+        ]
+      }
+    },
+    "insertId": "tqufwte1p7d6",
+    "resource": {
+      "type": "cloud_run_revision",
+      "labels": {
+        "revision_name": "",
+        "location": "us-central1",
+        "configuration_name": "",
+        "project_id": "courses-43ee6",
+        "service_name": "synctoloyverse"
+      }
+    },
+    "timestamp": "2025-12-28T14:49:55.614872Z",
+    "severity": "NOTICE",
+    "logName": "projects/courses-43ee6/logs/cloudaudit.googleapis.com%2Factivity",
+    "receiveTimestamp": "2025-12-28T14:49:56.024596149Z"
+  },
+  {
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "authenticationInfo": {
+        "principalEmail": "service-913794600574@gcf-admin-robot.iam.gserviceaccount.com"
+      },
+      "requestMetadata": {
+        "requestAttributes": {
+          "time": "2025-12-28T14:50:49.387362Z",
+          "auth": {}
+        },
+        "destinationAttributes": {}
+      },
+      "serviceName": "run.googleapis.com",
+      "methodName": "google.cloud.serverless.internal.InternalServices.CreateInternalService",
+      "authorizationInfo": [
+        {
+          "resource": "namespaces/courses-43ee6/services/synctoloyverse",
+          "permission": "run.services.create",
+          "granted": true,
+          "resourceAttributes": {},
+          "permissionType": "ADMIN_WRITE"
+        },
+        {
+          "resource": "namespaces/courses-43ee6/services/synctoloyverse",
+          "permission": "run.services.create",
+          "granted": true,
+          "resourceAttributes": {
+            "service": "run.googleapis.com/",
+            "name": "namespaces/courses-43ee6/services/synctoloyverse",
+            "type": "run.googleapis.com/Service"
+          },
+          "permissionType": "ADMIN_WRITE"
+        }
+      ],
+      "resourceName": "namespaces/courses-43ee6/services/synctoloyverse",
+      "resourceLocation": {
+        "currentLocations": [
+          "us-central1"
+        ]
+      }
+    },
+    "insertId": "-w6ngc9dxtcg",
+    "resource": {
+      "type": "cloud_run_revision",
+      "labels": {
+        "service_name": "synctoloyverse",
+        "project_id": "courses-43ee6",
+        "location": "us-central1",
+        "configuration_name": "",
+        "revision_name": ""
+      }
+    },
+    "timestamp": "2025-12-28T14:50:49.237562Z",
+    "severity": "NOTICE",
+    "logName": "projects/courses-43ee6/logs/cloudaudit.googleapis.com%2Factivity",
+    "receiveTimestamp": "2025-12-28T14:50:50.378461906Z"
+  },
+  {
+    "textPayload": "Starting new instance. Reason: DEPLOYMENT_ROLLOUT - Instance started due to traffic shifting between revisions due to deployment, traffic split adjustment, or deployment health check.",
+    "insertId": "695143ce000bff952c45fa24",
+    "resource": {
+      "type": "cloud_run_revision",
+      "labels": {
+        "project_id": "courses-43ee6",
+        "revision_name": "synctoloyverse-00001-diy",
+        "location": "us-central1",
+        "configuration_name": "synctoloyverse",
+        "service_name": "synctoloyverse"
+      }
+    },
+    "timestamp": "2025-12-28T14:50:54.786325Z",
+    "severity": "INFO",
+    "labels": {
+      "scaling_reason": "DEPLOYMENT_ROLLOUT",
+      "deployment-callable": "true",
+      "goog-managed-by": "cloudfunctions",
+      "instanceId": "0007e26d682c9f2f27ad7a47a27604a9de621da239b8a1b977174551ed48a3e0003662397030f3c00708d76dc20eb7d4c8a414bcda0a34126c216d376406bd62639e8dab02cddace32359e1aec9e64",
+      "firebase-functions-hash": "fdea36f63f2adc9f351f43d3edada19ef1affabd"
+    },
+    "logName": "projects/courses-43ee6/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2025-12-28T14:50:54.789580033Z"
+  },
+  {
+    "textPayload": "Default STARTUP TCP probe succeeded after 1 attempt for container \"worker\" on port 8080.",
+    "insertId": "695143d1000bd7c3d9140f76",
+    "resource": {
+      "type": "cloud_run_revision",
+      "labels": {
+        "location": "us-central1",
+        "project_id": "courses-43ee6",
+        "configuration_name": "synctoloyverse",
+        "service_name": "synctoloyverse",
+        "revision_name": "synctoloyverse-00001-diy"
+      }
+    },
+    "timestamp": "2025-12-28T14:50:57.776131Z",
+    "severity": "INFO",
+    "labels": {
+      "instanceId": "0007e26d682c9f2f27ad7a47a27604a9de621da239b8a1b977174551ed48a3e0003662397030f3c00708d76dc20eb7d4c8a414bcda0a34126c216d376406bd62639e8dab02cddace32359e1aec9e64",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20251207_20_19_5_RC00",
+      "firebase-functions-hash": "fdea36f63f2adc9f351f43d3edada19ef1affabd",
+      "goog-managed-by": "cloudfunctions",
+      "deployment-callable": "true"
+    },
+    "logName": "projects/courses-43ee6/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2025-12-28T14:50:57.786909568Z"
+  },
+  {
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "status": {
+        "message": "Ready condition status changed to True for Revision synctoloyverse-00001-diy with message: Deploying revision succeeded in 8.41s."
+      },
+      "serviceName": "run.googleapis.com",
+      "methodName": "/InternalServices.CreateInternalService",
+      "resourceName": "namespaces/courses-43ee6/revisions/synctoloyverse-00001-diy",
+      "response": {
+        "metadata": {
+          "name": "synctoloyverse-00001-diy",
+          "namespace": "913794600574",
+          "selfLink": "/apis/serving.knative.dev/v1/namespaces/913794600574/revisions/synctoloyverse-00001-diy",
+          "uid": "010722cb-532e-4798-95b3-f9d45d71a87c",
+          "resourceVersion": "AAZHBEEYsj0",
+          "generation": 1,
+          "creationTimestamp": "2025-12-28T14:50:49.433158Z",
+          "labels": {
+            "deployment-callable": "true",
+            "firebase-functions-hash": "fdea36f63f2adc9f351f43d3edada19ef1affabd",
+            "serving.knative.dev/configuration": "synctoloyverse",
+            "serving.knative.dev/configurationGeneration": "1",
+            "serving.knative.dev/service": "synctoloyverse",
+            "serving.knative.dev/serviceUid": "b10fa5bc-daef-4005-946e-f165a598f0e9",
+            "goog-managed-by": "cloudfunctions",
+            "goog-cloudfunctions-runtime": "nodejs20",
+            "serving.knative.dev/route": "synctoloyverse",
+            "cloud.googleapis.com/location": "us-central1",
+            "run.googleapis.com/startupProbeType": "Default"
+          },
+          "annotations": {
+            "run.googleapis.com/client-name": "cli-firebase",
+            "cloudfunctions.googleapis.com/trigger-type": "HTTP_TRIGGER",
+            "serving.knative.dev/creator": "service-913794600574@gcf-admin-robot.iam.gserviceaccount.com",
+            "run.googleapis.com/build-source-location": "{\"worker\":\"gs://gcf-v2-sources-913794600574-us-central1/syncToLoyverse/function-source.zip#1766933395578805\"}",
+            "run.googleapis.com/build-id": "{\"worker\":\"602bfdb3-9d99-4f02-b3d9-541e37d46cd3\"}",
+            "run.googleapis.com/build-function-target": "{\"worker\":\"syncToLoyverse\"}",
+            "run.googleapis.com/operation-id": "7b57b0fd-378d-4a1c-a9de-673304505970",
+            "run.googleapis.com/startup-cpu-boost": "true",
+            "run.googleapis.com/base-images": "{\"worker\":\"us-central1-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20\"}"
+          },
+          "ownerReferences": [
+            {
+              "kind": "Configuration",
+              "name": "synctoloyverse",
+              "uid": "8df7ca3b-337f-4a0a-873d-501b0dfe2aea",
+              "apiVersion": "serving.knative.dev/v1",
+              "controller": true,
+              "blockOwnerDeletion": true
+            }
+          ]
+        },
+        "apiVersion": "serving.knative.dev/v1",
+        "kind": "Revision",
+        "spec": {
+          "containerConcurrency": 80,
+          "timeoutSeconds": 60,
+          "serviceAccountName": "913794600574-compute@developer.gserviceaccount.com",
+          "containers": [
+            {
+              "name": "worker",
+              "image": "us-central1-docker.pkg.dev/courses-43ee6/gcf-artifacts/courses--43ee6__us--central1__sync_to_loyverse@sha256:49e73ccdadc833a3fa7785f0642deaca317701da80ce4d098baebe7ca83553b4",
+              "ports": [
+                {
+                  "name": "http1",
+                  "containerPort": 8080
+                }
+              ],
+              "env": [
+                {
+                  "name": "FIREBASE_CONFIG",
+                  "value": "{\"projectId\":\"courses-43ee6\",\"storageBucket\":\"courses-43ee6.firebasestorage.app\"}"
+                },
+                {
+                  "name": "GCLOUD_PROJECT",
+                  "value": "courses-43ee6"
+                },
+                {
+                  "name": "EVENTARC_CLOUD_EVENT_SOURCE",
+                  "value": "projects/courses-43ee6/locations/us-central1/services/syncToLoyverse"
+                },
+                {
+                  "name": "FUNCTION_TARGET",
+                  "value": "syncToLoyverse"
+                },
+                {
+                  "name": "LOG_EXECUTION_ID",
+                  "value": "true"
+                }
+              ],
+              "resources": {
+                "limits": {
+                  "cpu": "1",
+                  "memory": "256Mi"
+                }
+              },
+              "startupProbe": {
+                "timeoutSeconds": 240,
+                "periodSeconds": 240,
+                "failureThreshold": 1,
+                "tcpSocket": {
+                  "port": 8080
+                }
+              }
+            }
+          ],
+          "runtimeClassName": "run.googleapis.com/linux-base-image-update"
+        },
+        "status": {
+          "observedGeneration": 1,
+          "conditions": [
+            {
+              "type": "Ready",
+              "status": "True",
+              "message": "Deploying revision succeeded in 8.41s.",
+              "lastTransitionTime": "2025-12-28T14:50:57.842749Z"
+            },
+            {
+              "type": "ContainerHealthy",
+              "status": "True",
+              "message": "Containers became healthy in 1.74s.",
+              "lastTransitionTime": "2025-12-28T14:50:57.789352Z"
+            },
+            {
+              "type": "ContainerReady",
+              "status": "True",
+              "message": "Container image import completed in 1.2s.",
+              "lastTransitionTime": "2025-12-28T14:50:51.209117Z"
+            },
+            {
+              "type": "ResourcesAvailable",
+              "status": "True",
+              "message": "Provisioning imported containers completed in 3.45s. Checking container health. This will wait for up to 4m for the configured startup probe, including an initial delay of 0s.",
+              "lastTransitionTime": "2025-12-28T14:50:54.660849Z"
+            }
+          ],
+          "logUrl": "https://console.cloud.google.com/logs/viewer?project=courses-43ee6&resource=cloud_run_revision/service_name/synctoloyverse/revision_name/synctoloyverse-00001-diy&advancedFilter=resource.type%3D%22cloud_run_revision%22%0Aresource.labels.service_name%3D%22synctoloyverse%22%0Aresource.labels.revision_name%3D%22synctoloyverse-00001-diy%22",
+          "imageDigest": "us-central1-docker.pkg.dev/courses-43ee6/gcf-artifacts/courses--43ee6__us--central1__sync_to_loyverse@sha256:49e73ccdadc833a3fa7785f0642deaca317701da80ce4d098baebe7ca83553b4",
+          "containerStatuses": [
+            {
+              "name": "worker",
+              "imageDigest": "us-central1-docker.pkg.dev/courses-43ee6/gcf-artifacts/courses--43ee6__us--central1__sync_to_loyverse@sha256:49e73ccdadc833a3fa7785f0642deaca317701da80ce4d098baebe7ca83553b4"
+            }
+          ]
+        },
+        "@type": "type.googleapis.com/google.cloud.run.v1.Revision"
+      }
+    },
+    "insertId": "-1vyqhue1qsfe",
+    "resource": {
+      "type": "cloud_run_revision",
+      "labels": {
+        "revision_name": "synctoloyverse-00001-diy",
+        "configuration_name": "synctoloyverse",
+        "project_id": "courses-43ee6",
+        "location": "us-central1",
+        "service_name": "synctoloyverse"
+      }
+    },
+    "timestamp": "2025-12-28T14:50:57.851758Z",
+    "severity": "INFO",
+    "logName": "projects/courses-43ee6/logs/cloudaudit.googleapis.com%2Fsystem_event",
+    "receiveTimestamp": "2025-12-28T14:50:58.497238614Z"
+  },
+  {
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "status": {
+        "message": "Ready condition status changed to True for Service synctoloyverse."
+      },
+      "serviceName": "run.googleapis.com",
+      "methodName": "/InternalServices.CreateInternalService",
+      "resourceName": "namespaces/courses-43ee6/services/synctoloyverse",
+      "response": {
+        "metadata": {
+          "name": "synctoloyverse",
+          "namespace": "913794600574",
+          "selfLink": "/apis/serving.knative.dev/v1/namespaces/913794600574/services/synctoloyverse",
+          "uid": "b10fa5bc-daef-4005-946e-f165a598f0e9",
+          "resourceVersion": "AAZHBEEreyM",
+          "generation": 1,
+          "creationTimestamp": "2025-12-28T14:50:49.323484Z",
+          "labels": {
+            "goog-drz-cloudfunctions-location": "us-central1",
+            "goog-drz-cloudfunctions-id": "synctoloyverse",
+            "firebase-functions-hash": "fdea36f63f2adc9f351f43d3edada19ef1affabd",
+            "deployment-callable": "true",
+            "goog-managed-by": "cloudfunctions",
+            "goog-cloudfunctions-runtime": "nodejs20",
+            "cloud.googleapis.com/location": "us-central1"
+          },
+          "annotations": {
+            "run.googleapis.com/custom-audiences": "[\"https://us-central1-courses-43ee6.cloudfunctions.net/syncToLoyverse\"]",
+            "run.googleapis.com/client-name": "cli-firebase",
+            "run.googleapis.com/build-source-location": "gs://gcf-v2-sources-913794600574-us-central1/syncToLoyverse/function-source.zip#1766933395578805",
+            "run.googleapis.com/build-environment-variables": "{\"GOOGLE_NODE_RUN_SCRIPTS\":\"\"}",
+            "run.googleapis.com/build-function-target": "syncToLoyverse",
+            "run.googleapis.com/build-service-account": "projects/courses-43ee6/serviceAccounts/913794600574-compute@developer.gserviceaccount.com",
+            "run.googleapis.com/build-enable-automatic-updates": "true",
+            "run.googleapis.com/build-base-image": "us-central1-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20",
+            "run.googleapis.com/build-image-uri": "us-central1-docker.pkg.dev/courses-43ee6/gcf-artifacts/courses--43ee6__us--central1__sync_to_loyverse:version_1",
+            "run.googleapis.com/build-name": "projects/913794600574/locations/us-central1/builds/602bfdb3-9d99-4f02-b3d9-541e37d46cd3",
+            "serving.knative.dev/creator": "service-913794600574@gcf-admin-robot.iam.gserviceaccount.com",
+            "serving.knative.dev/lastModifier": "service-913794600574@gcf-admin-robot.iam.gserviceaccount.com",
+            "run.googleapis.com/operation-id": "7b57b0fd-378d-4a1c-a9de-673304505970",
+            "run.googleapis.com/ingress": "all",
+            "run.googleapis.com/ingress-status": "all",
+            "cloudfunctions.googleapis.com/function-id": "syncToLoyverse",
+            "run.googleapis.com/maxScale": "20",
+            "run.googleapis.com/urls": "[\"https://synctoloyverse-913794600574.us-central1.run.app\",\"https://us-central1-courses-43ee6.cloudfunctions.net/syncToLoyverse\",\"https://synctoloyverse-2n7sc53hoa-uc.a.run.app\"]"
+          }
+        },
+        "apiVersion": "serving.knative.dev/v1",
+        "kind": "Service",
+        "spec": {
+          "template": {
+            "metadata": {
+              "name": "synctoloyverse-00001-diy",
+              "labels": {
+                "deployment-callable": "true",
+                "firebase-functions-hash": "fdea36f63f2adc9f351f43d3edada19ef1affabd",
+                "run.googleapis.com/startupProbeType": "Default"
+              },
+              "annotations": {
+                "run.googleapis.com/client-name": "cli-firebase",
+                "cloudfunctions.googleapis.com/trigger-type": "HTTP_TRIGGER",
+                "run.googleapis.com/base-images": "{\"worker\":\"us-central1-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20\"}",
+                "run.googleapis.com/startup-cpu-boost": "true"
+              }
+            },
+            "spec": {
+              "containerConcurrency": 80,
+              "timeoutSeconds": 60,
+              "serviceAccountName": "913794600574-compute@developer.gserviceaccount.com",
+              "containers": [
+                {
+                  "name": "worker",
+                  "image": "us-central1-docker.pkg.dev/courses-43ee6/gcf-artifacts/courses--43ee6__us--central1__sync_to_loyverse:version_1",
+                  "ports": [
+                    {
+                      "name": "http1",
+                      "containerPort": 8080
+                    }
+                  ],
+                  "env": [
+                    {
+                      "name": "FIREBASE_CONFIG",
+                      "value": "{\"projectId\":\"courses-43ee6\",\"storageBucket\":\"courses-43ee6.firebasestorage.app\"}"
+                    },
+                    {
+                      "name": "GCLOUD_PROJECT",
+                      "value": "courses-43ee6"
+                    },
+                    {
+                      "name": "EVENTARC_CLOUD_EVENT_SOURCE",
+                      "value": "projects/courses-43ee6/locations/us-central1/services/syncToLoyverse"
+                    },
+                    {
+                      "name": "FUNCTION_TARGET",
+                      "value": "syncToLoyverse"
+                    },
+                    {
+                      "name": "LOG_EXECUTION_ID",
+                      "value": "true"
+                    }
+                  ],
+                  "resources": {
+                    "limits": {
+                      "cpu": "1",
+                      "memory": "256Mi"
+                    }
+                  },
+                  "startupProbe": {
+                    "timeoutSeconds": 240,
+                    "periodSeconds": 240,
+                    "failureThreshold": 1,
+                    "tcpSocket": {
+                      "port": 8080
+                    }
+                  }
+                }
+              ],
+              "runtimeClassName": "run.googleapis.com/linux-base-image-update"
+            }
+          },
+          "traffic": [
+            {
+              "percent": 100,
+              "latestRevision": true
+            }
+          ]
+        },
+        "status": {
+          "observedGeneration": 1,
+          "conditions": [
+            {
+              "type": "Ready",
+              "status": "True",
+              "lastTransitionTime": "2025-12-28T14:50:59.073827Z"
+            },
+            {
+              "type": "ConfigurationsReady",
+              "status": "True",
+              "lastTransitionTime": "2025-12-28T14:50:57.891625Z"
+            },
+            {
+              "type": "RoutesReady",
+              "status": "True",
+              "lastTransitionTime": "2025-12-28T14:50:59.029721Z"
+            }
+          ],
+          "latestReadyRevisionName": "synctoloyverse-00001-diy",
+          "latestCreatedRevisionName": "synctoloyverse-00001-diy",
+          "traffic": [
+            {
+              "revisionName": "synctoloyverse-00001-diy",
+              "percent": 100,
+              "latestRevision": true
+            }
+          ],
+          "url": "https://synctoloyverse-2n7sc53hoa-uc.a.run.app",
+          "address": {
+            "url": "https://synctoloyverse-2n7sc53hoa-uc.a.run.app"
+          }
+        },
+        "@type": "type.googleapis.com/google.cloud.run.v1.Service"
+      }
+    },
+    "insertId": "vxvfspe1jfi8",
+    "resource": {
+      "type": "cloud_run_revision",
+      "labels": {
+        "service_name": "synctoloyverse",
+        "location": "us-central1",
+        "revision_name": "",
+        "configuration_name": "",
+        "project_id": "courses-43ee6"
+      }
+    },
+    "timestamp": "2025-12-28T14:50:59.086310Z",
+    "severity": "INFO",
+    "logName": "projects/courses-43ee6/logs/cloudaudit.googleapis.com%2Fsystem_event",
+    "receiveTimestamp": "2025-12-28T14:50:59.485550724Z"
+  },
+  {
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "authenticationInfo": {
+        "principalEmail": "service-913794600574@gcf-admin-robot.iam.gserviceaccount.com"
+      },
+      "requestMetadata": {
+        "requestAttributes": {
+          "time": "2025-12-28T15:16:46.095857Z",
+          "auth": {}
+        },
+        "destinationAttributes": {}
+      },
+      "serviceName": "run.googleapis.com",
+      "methodName": "google.cloud.serverless.internal.InternalServices.ReplaceInternalService",
+      "authorizationInfo": [
+        {
+          "resource": "namespaces/courses-43ee6/services/synctoloyverse",
+          "permission": "run.services.update",
+          "granted": true,
+          "resourceAttributes": {},
+          "permissionType": "ADMIN_WRITE"
+        },
+        {
+          "resource": "namespaces/courses-43ee6/services/synctoloyverse",
+          "permission": "run.services.update",
+          "granted": true,
+          "resourceAttributes": {
+            "service": "run.googleapis.com/",
+            "name": "namespaces/courses-43ee6/services/synctoloyverse",
+            "type": "run.googleapis.com/Service"
+          },
+          "permissionType": "ADMIN_WRITE"
+        }
+      ],
+      "resourceName": "namespaces/courses-43ee6/services/synctoloyverse",
+      "resourceLocation": {
+        "currentLocations": [
+          "us-central1"
+        ]
+      }
+    },
+    "insertId": "xl2gttdvh6s",
+    "resource": {
+      "type": "cloud_run_revision",
+      "labels": {
+        "location": "us-central1",
+        "project_id": "courses-43ee6",
+        "revision_name": "",
+        "service_name": "synctoloyverse",
+        "configuration_name": ""
+      }
+    },
+    "timestamp": "2025-12-28T15:16:45.947073Z",
+    "severity": "NOTICE",
+    "logName": "projects/courses-43ee6/logs/cloudaudit.googleapis.com%2Factivity",
+    "receiveTimestamp": "2025-12-28T15:16:46.128806966Z"
+  },
+  {
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "authenticationInfo": {
+        "principalEmail": "service-913794600574@gcf-admin-robot.iam.gserviceaccount.com"
+      },
+      "requestMetadata": {
+        "requestAttributes": {
+          "time": "2025-12-28T15:17:22.553482Z",
+          "auth": {}
+        },
+        "destinationAttributes": {}
+      },
+      "serviceName": "run.googleapis.com",
+      "methodName": "google.cloud.serverless.internal.InternalServices.ReplaceInternalService",
+      "authorizationInfo": [
+        {
+          "resource": "namespaces/courses-43ee6/services/synctoloyverse",
+          "permission": "run.services.update",
+          "granted": true,
+          "resourceAttributes": {},
+          "permissionType": "ADMIN_WRITE"
+        },
+        {
+          "resource": "namespaces/courses-43ee6/services/synctoloyverse",
+          "permission": "run.services.update",
+          "granted": true,
+          "resourceAttributes": {
+            "service": "run.googleapis.com/",
+            "name": "namespaces/courses-43ee6/services/synctoloyverse",
+            "type": "run.googleapis.com/Service"
+          },
+          "permissionType": "ADMIN_WRITE"
+        }
+      ],
+      "resourceName": "namespaces/courses-43ee6/services/synctoloyverse",
+      "resourceLocation": {
+        "currentLocations": [
+          "us-central1"
+        ]
+      }
+    },
+    "insertId": "v547l0e135gc",
+    "resource": {
+      "type": "cloud_run_revision",
+      "labels": {
+        "service_name": "synctoloyverse",
+        "project_id": "courses-43ee6",
+        "location": "us-central1",
+        "configuration_name": "",
+        "revision_name": ""
+      }
+    },
+    "timestamp": "2025-12-28T15:17:22.409791Z",
+    "severity": "NOTICE",
+    "logName": "projects/courses-43ee6/logs/cloudaudit.googleapis.com%2Factivity",
+    "receiveTimestamp": "2025-12-28T15:17:23.350730131Z"
+  },
+  {
+    "textPayload": "Starting new instance. Reason: DEPLOYMENT_ROLLOUT - Instance started due to traffic shifting between revisions due to deployment, traffic split adjustment, or deployment health check.",
+    "insertId": "69514a080000b72c938ab807",
+    "resource": {
+      "type": "cloud_run_revision",
+      "labels": {
+        "configuration_name": "synctoloyverse",
+        "service_name": "synctoloyverse",
+        "revision_name": "synctoloyverse-00002-sif",
+        "location": "us-central1",
+        "project_id": "courses-43ee6"
+      }
+    },
+    "timestamp": "2025-12-28T15:17:28.046892Z",
+    "severity": "INFO",
+    "labels": {
+      "firebase-functions-hash": "d9e64d42a016ed67abeaec67691dbdcf67b607e5",
+      "goog-drz-cloudfunctions-location": "us-central1",
+      "deployment-callable": "true",
+      "goog-managed-by": "cloudfunctions",
+      "scaling_reason": "DEPLOYMENT_ROLLOUT",
+      "goog-drz-cloudfunctions-id": "synctoloyverse",
+      "instanceId": "0007e26d68f8e8c7029d0ba76dfb615fed13a818133c53e56ae132e5968e87f7b93da668d451944d6c08c789a01a08e690982fc3e77d29e5a65eca12764dff5360a259884113a8bd0cb932615c7a"
+    },
+    "logName": "projects/courses-43ee6/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2025-12-28T15:17:28.050121306Z"
+  },
+  {
+    "textPayload": "Default STARTUP TCP probe succeeded after 1 attempt for container \"worker\" on port 8080.",
+    "insertId": "69514a0900068fdc8114413d",
+    "resource": {
+      "type": "cloud_run_revision",
+      "labels": {
+        "project_id": "courses-43ee6",
+        "service_name": "synctoloyverse",
+        "configuration_name": "synctoloyverse",
+        "location": "us-central1",
+        "revision_name": "synctoloyverse-00002-sif"
+      }
+    },
+    "timestamp": "2025-12-28T15:17:29.430044Z",
+    "severity": "INFO",
+    "labels": {
+      "instanceId": "0007e26d68f8e8c7029d0ba76dfb615fed13a818133c53e56ae132e5968e87f7b93da668d451944d6c08c789a01a08e690982fc3e77d29e5a65eca12764dff5360a259884113a8bd0cb932615c7a",
+      "goog-drz-cloudfunctions-id": "synctoloyverse",
+      "goog-managed-by": "cloudfunctions",
+      "goog-drz-cloudfunctions-location": "us-central1",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20251207_20_19_5_RC00",
+      "firebase-functions-hash": "d9e64d42a016ed67abeaec67691dbdcf67b607e5",
+      "deployment-callable": "true"
+    },
+    "logName": "projects/courses-43ee6/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2025-12-28T15:17:29.715079802Z"
+  },
+  {
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "status": {
+        "message": "Ready condition status changed to True for Revision synctoloyverse-00002-sif with message: Deploying revision succeeded in 6.9s."
+      },
+      "serviceName": "run.googleapis.com",
+      "methodName": "/InternalServices.ReplaceInternalService",
+      "resourceName": "namespaces/courses-43ee6/revisions/synctoloyverse-00002-sif",
+      "response": {
+        "metadata": {
+          "name": "synctoloyverse-00002-sif",
+          "namespace": "913794600574",
+          "selfLink": "/apis/serving.knative.dev/v1/namespaces/913794600574/revisions/synctoloyverse-00002-sif",
+          "uid": "6c8ee88d-bac1-4baf-ba4d-5038f21a1afb",
+          "resourceVersion": "AAZHBJ/3mxM",
+          "generation": 1,
+          "creationTimestamp": "2025-12-28T15:17:22.604117Z",
+          "labels": {
+            "goog-drz-cloudfunctions-location": "us-central1",
+            "firebase-functions-hash": "d9e64d42a016ed67abeaec67691dbdcf67b607e5",
+            "goog-drz-cloudfunctions-id": "synctoloyverse",
+            "deployment-callable": "true",
+            "serving.knative.dev/configuration": "synctoloyverse",
+            "serving.knative.dev/configurationGeneration": "2",
+            "serving.knative.dev/service": "synctoloyverse",
+            "serving.knative.dev/serviceUid": "b10fa5bc-daef-4005-946e-f165a598f0e9",
+            "goog-managed-by": "cloudfunctions",
+            "goog-cloudfunctions-runtime": "nodejs20",
+            "cloud.googleapis.com/location": "us-central1",
+            "serving.knative.dev/route": "synctoloyverse",
+            "run.googleapis.com/startupProbeType": "Default"
+          },
+          "annotations": {
+            "run.googleapis.com/client-name": "cli-firebase",
+            "cloudfunctions.googleapis.com/trigger-type": "HTTP_TRIGGER",
+            "autoscaling.knative.dev/maxScale": "20",
+            "serving.knative.dev/creator": "service-913794600574@gcf-admin-robot.iam.gserviceaccount.com",
+            "run.googleapis.com/build-source-location": "{\"worker\":\"gs://gcf-v2-sources-913794600574-us-central1/syncToLoyverse/function-source.zip#1766935006302310\"}",
+            "run.googleapis.com/build-id": "{\"worker\":\"d5e81323-02c2-48d0-8190-ecae479c1109\"}",
+            "run.googleapis.com/build-function-target": "{\"worker\":\"syncToLoyverse\"}",
+            "run.googleapis.com/operation-id": "e623bc48-e062-440b-a0c9-efc993d6e47c",
+            "run.googleapis.com/startup-cpu-boost": "true",
+            "run.googleapis.com/base-images": "{\"worker\":\"us-central1-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20\"}"
+          },
+          "ownerReferences": [
+            {
+              "kind": "Configuration",
+              "name": "synctoloyverse",
+              "uid": "8df7ca3b-337f-4a0a-873d-501b0dfe2aea",
+              "apiVersion": "serving.knative.dev/v1",
+              "controller": true,
+              "blockOwnerDeletion": true
+            }
+          ]
+        },
+        "apiVersion": "serving.knative.dev/v1",
+        "kind": "Revision",
+        "spec": {
+          "containerConcurrency": 80,
+          "timeoutSeconds": 60,
+          "serviceAccountName": "913794600574-compute@developer.gserviceaccount.com",
+          "containers": [
+            {
+              "name": "worker",
+              "image": "us-central1-docker.pkg.dev/courses-43ee6/gcf-artifacts/courses--43ee6__us--central1__sync_to_loyverse@sha256:969a8ba3456735001c56dcb28611fc1d46de7afc37ee82e8006adbc5f1cceb2f",
+              "ports": [
+                {
+                  "name": "http1",
+                  "containerPort": 8080
+                }
+              ],
+              "env": [
+                {
+                  "name": "FIREBASE_CONFIG",
+                  "value": "{\"projectId\":\"courses-43ee6\",\"storageBucket\":\"courses-43ee6.firebasestorage.app\"}"
+                },
+                {
+                  "name": "GCLOUD_PROJECT",
+                  "value": "courses-43ee6"
+                },
+                {
+                  "name": "EVENTARC_CLOUD_EVENT_SOURCE",
+                  "value": "projects/courses-43ee6/locations/us-central1/services/syncToLoyverse"
+                },
+                {
+                  "name": "FUNCTION_TARGET",
+                  "value": "syncToLoyverse"
+                },
+                {
+                  "name": "LOG_EXECUTION_ID",
+                  "value": "true"
+                }
+              ],
+              "resources": {
+                "limits": {
+                  "cpu": "1",
+                  "memory": "256Mi"
+                }
+              },
+              "startupProbe": {
+                "timeoutSeconds": 240,
+                "periodSeconds": 240,
+                "failureThreshold": 1,
+                "tcpSocket": {
+                  "port": 8080
+                }
+              }
+            }
+          ],
+          "runtimeClassName": "run.googleapis.com/linux-base-image-update"
+        },
+        "status": {
+          "observedGeneration": 1,
+          "conditions": [
+            {
+              "type": "Ready",
+              "status": "True",
+              "message": "Deploying revision succeeded in 6.9s.",
+              "lastTransitionTime": "2025-12-28T15:17:29.509651Z"
+            },
+            {
+              "type": "ContainerHealthy",
+              "status": "True",
+              "message": "Containers became healthy in 1.23s.",
+              "lastTransitionTime": "2025-12-28T15:17:29.443359Z"
+            },
+            {
+              "type": "ContainerReady",
+              "status": "True",
+              "message": "Container image import completed in 3.12s.",
+              "lastTransitionTime": "2025-12-28T15:17:26.347670Z"
+            },
+            {
+              "type": "ResourcesAvailable",
+              "status": "True",
+              "message": "Provisioning imported containers completed in 1.58s. Checking container health. This will wait for up to 4m for the configured startup probe, including an initial delay of 0s.",
+              "lastTransitionTime": "2025-12-28T15:17:27.930145Z"
+            }
+          ],
+          "logUrl": "https://console.cloud.google.com/logs/viewer?project=courses-43ee6&resource=cloud_run_revision/service_name/synctoloyverse/revision_name/synctoloyverse-00002-sif&advancedFilter=resource.type%3D%22cloud_run_revision%22%0Aresource.labels.service_name%3D%22synctoloyverse%22%0Aresource.labels.revision_name%3D%22synctoloyverse-00002-sif%22",
+          "imageDigest": "us-central1-docker.pkg.dev/courses-43ee6/gcf-artifacts/courses--43ee6__us--central1__sync_to_loyverse@sha256:969a8ba3456735001c56dcb28611fc1d46de7afc37ee82e8006adbc5f1cceb2f",
+          "containerStatuses": [
+            {
+              "name": "worker",
+              "imageDigest": "us-central1-docker.pkg.dev/courses-43ee6/gcf-artifacts/courses--43ee6__us--central1__sync_to_loyverse@sha256:969a8ba3456735001c56dcb28611fc1d46de7afc37ee82e8006adbc5f1cceb2f"
+            }
+          ]
+        },
+        "@type": "type.googleapis.com/google.cloud.run.v1.Revision"
+      }
+    },
+    "insertId": "5tvru6e101jy",
+    "resource": {
+      "type": "cloud_run_revision",
+      "labels": {
+        "revision_name": "synctoloyverse-00002-sif",
+        "project_id": "courses-43ee6",
+        "configuration_name": "synctoloyverse",
+        "service_name": "synctoloyverse",
+        "location": "us-central1"
+      }
+    },
+    "timestamp": "2025-12-28T15:17:29.524459Z",
+    "severity": "INFO",
+    "logName": "projects/courses-43ee6/logs/cloudaudit.googleapis.com%2Fsystem_event",
+    "receiveTimestamp": "2025-12-28T15:17:29.757075983Z"
+  },
+  {
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "status": {
+        "message": "Ready condition status changed to True for Service synctoloyverse."
+      },
+      "serviceName": "run.googleapis.com",
+      "methodName": "/InternalServices.ReplaceInternalService",
+      "resourceName": "namespaces/courses-43ee6/services/synctoloyverse",
+      "response": {
+        "metadata": {
+          "name": "synctoloyverse",
+          "namespace": "913794600574",
+          "selfLink": "/apis/serving.knative.dev/v1/namespaces/913794600574/services/synctoloyverse",
+          "uid": "b10fa5bc-daef-4005-946e-f165a598f0e9",
+          "resourceVersion": "AAZHBKAMfvQ",
+          "generation": 2,
+          "creationTimestamp": "2025-12-28T14:50:49.323484Z",
+          "labels": {
+            "goog-drz-cloudfunctions-location": "us-central1",
+            "firebase-functions-hash": "d9e64d42a016ed67abeaec67691dbdcf67b607e5",
+            "goog-managed-by": "cloudfunctions",
+            "goog-cloudfunctions-runtime": "nodejs20",
+            "cloud.googleapis.com/location": "us-central1",
+            "goog-drz-cloudfunctions-id": "synctoloyverse",
+            "deployment-callable": "true"
+          },
+          "annotations": {
+            "serving.knative.dev/creator": "service-913794600574@gcf-admin-robot.iam.gserviceaccount.com",
+            "serving.knative.dev/lastModifier": "service-913794600574@gcf-admin-robot.iam.gserviceaccount.com",
+            "run.googleapis.com/custom-audiences": "[\"https://us-central1-courses-43ee6.cloudfunctions.net/syncToLoyverse\"]",
+            "run.googleapis.com/client-name": "cli-firebase",
+            "cloudfunctions.googleapis.com/function-id": "syncToLoyverse",
+            "run.googleapis.com/build-source-location": "gs://gcf-v2-sources-913794600574-us-central1/syncToLoyverse/function-source.zip#1766935006302310",
+            "run.googleapis.com/build-environment-variables": "{\"GOOGLE_NODE_RUN_SCRIPTS\":\"\"}",
+            "run.googleapis.com/build-function-target": "syncToLoyverse",
+            "run.googleapis.com/build-service-account": "projects/courses-43ee6/serviceAccounts/913794600574-compute@developer.gserviceaccount.com",
+            "run.googleapis.com/build-enable-automatic-updates": "true",
+            "run.googleapis.com/build-base-image": "us-central1-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20",
+            "run.googleapis.com/build-image-uri": "us-central1-docker.pkg.dev/courses-43ee6/gcf-artifacts/courses--43ee6__us--central1__sync_to_loyverse:version_1",
+            "run.googleapis.com/build-name": "projects/913794600574/locations/us-central1/builds/d5e81323-02c2-48d0-8190-ecae479c1109",
+            "run.googleapis.com/operation-id": "e623bc48-e062-440b-a0c9-efc993d6e47c",
+            "run.googleapis.com/ingress": "all",
+            "run.googleapis.com/ingress-status": "all",
+            "run.googleapis.com/maxScale": "20",
+            "run.googleapis.com/urls": "[\"https://synctoloyverse-913794600574.us-central1.run.app\",\"https://us-central1-courses-43ee6.cloudfunctions.net/syncToLoyverse\",\"https://synctoloyverse-2n7sc53hoa-uc.a.run.app\"]"
+          }
+        },
+        "apiVersion": "serving.knative.dev/v1",
+        "kind": "Service",
+        "spec": {
+          "template": {
+            "metadata": {
+              "name": "synctoloyverse-00002-sif",
+              "labels": {
+                "goog-drz-cloudfunctions-location": "us-central1",
+                "firebase-functions-hash": "d9e64d42a016ed67abeaec67691dbdcf67b607e5",
+                "goog-drz-cloudfunctions-id": "synctoloyverse",
+                "deployment-callable": "true",
+                "run.googleapis.com/startupProbeType": "Default"
+              },
+              "annotations": {
+                "run.googleapis.com/client-name": "cli-firebase",
+                "cloudfunctions.googleapis.com/trigger-type": "HTTP_TRIGGER",
+                "autoscaling.knative.dev/maxScale": "20",
+                "run.googleapis.com/base-images": "{\"worker\":\"us-central1-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20\"}",
+                "run.googleapis.com/startup-cpu-boost": "true"
+              }
+            },
+            "spec": {
+              "containerConcurrency": 80,
+              "timeoutSeconds": 60,
+              "serviceAccountName": "913794600574-compute@developer.gserviceaccount.com",
+              "containers": [
+                {
+                  "name": "worker",
+                  "image": "us-central1-docker.pkg.dev/courses-43ee6/gcf-artifacts/courses--43ee6__us--central1__sync_to_loyverse:version_1",
+                  "ports": [
+                    {
+                      "name": "http1",
+                      "containerPort": 8080
+                    }
+                  ],
+                  "env": [
+                    {
+                      "name": "FIREBASE_CONFIG",
+                      "value": "{\"projectId\":\"courses-43ee6\",\"storageBucket\":\"courses-43ee6.firebasestorage.app\"}"
+                    },
+                    {
+                      "name": "GCLOUD_PROJECT",
+                      "value": "courses-43ee6"
+                    },
+                    {
+                      "name": "EVENTARC_CLOUD_EVENT_SOURCE",
+                      "value": "projects/courses-43ee6/locations/us-central1/services/syncToLoyverse"
+                    },
+                    {
+                      "name": "FUNCTION_TARGET",
+                      "value": "syncToLoyverse"
+                    },
+                    {
+                      "name": "LOG_EXECUTION_ID",
+                      "value": "true"
+                    }
+                  ],
+                  "resources": {
+                    "limits": {
+                      "cpu": "1",
+                      "memory": "256Mi"
+                    }
+                  },
+                  "startupProbe": {
+                    "timeoutSeconds": 240,
+                    "periodSeconds": 240,
+                    "failureThreshold": 1,
+                    "tcpSocket": {
+                      "port": 8080
+                    }
+                  }
+                }
+              ],
+              "runtimeClassName": "run.googleapis.com/linux-base-image-update"
+            }
+          },
+          "traffic": [
+            {
+              "percent": 100,
+              "latestRevision": true
+            }
+          ]
+        },
+        "status": {
+          "observedGeneration": 2,
+          "conditions": [
+            {
+              "type": "Ready",
+              "status": "True",
+              "lastTransitionTime": "2025-12-28T15:17:30.878708Z"
+            },
+            {
+              "type": "ConfigurationsReady",
+              "status": "True",
+              "lastTransitionTime": "2025-12-28T15:17:26.464010Z"
+            },
+            {
+              "type": "RoutesReady",
+              "status": "True",
+              "lastTransitionTime": "2025-12-28T15:17:30.826623Z"
+            }
+          ],
+          "latestReadyRevisionName": "synctoloyverse-00002-sif",
+          "latestCreatedRevisionName": "synctoloyverse-00002-sif",
+          "traffic": [
+            {
+              "revisionName": "synctoloyverse-00002-sif",
+              "percent": 100,
+              "latestRevision": true
+            }
+          ],
+          "url": "https://synctoloyverse-2n7sc53hoa-uc.a.run.app",
+          "address": {
+            "url": "https://synctoloyverse-2n7sc53hoa-uc.a.run.app"
+          }
+        },
+        "@type": "type.googleapis.com/google.cloud.run.v1.Service"
+      }
+    },
+    "insertId": "828t94e17iiq",
+    "resource": {
+      "type": "cloud_run_revision",
+      "labels": {
+        "project_id": "courses-43ee6",
+        "location": "us-central1",
+        "revision_name": "",
+        "configuration_name": "",
+        "service_name": "synctoloyverse"
+      }
+    },
+    "timestamp": "2025-12-28T15:17:30.898216Z",
+    "severity": "INFO",
+    "logName": "projects/courses-43ee6/logs/cloudaudit.googleapis.com%2Fsystem_event",
+    "receiveTimestamp": "2025-12-28T15:17:31.593662699Z"
+  }
+]

@@ -29,10 +29,24 @@ const CartPage: React.FC = () => {
 
     // UPDATED: handleCheckout now redirects to Bizappay
     const handleCheckout = async () => {
-        if (!customerFullName || !customerEmail || !customerPhone) {
-            setError("Please fill in your Full Name, Email, and Phone Number.");
+        // Validation Regex
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        // Phone: Allows +60 or 01, followed by digits, 9-14 chars total
+        const phoneRegex = /^(\+?6?0)[0-9]{7,14}$/;
+
+        if (!customerFullName || customerFullName.length <= 5) {
+            setError("Full Name must be more than 5 characters (Bizappay requirement).");
             return;
         }
+        if (!emailRegex.test(customerEmail)) {
+            setError("Please enter a valid email address.");
+            return;
+        }
+        if (!phoneRegex.test(customerPhone.replace(/\s/g, ''))) {
+            setError("Please enter a valid phone number (e.g., 0123456789).");
+            return;
+        }
+
         setError(null);
         setIsProcessing(true);
 
@@ -60,14 +74,14 @@ const CartPage: React.FC = () => {
 
             // 2. Call the NEW Cloud Function to create the payment link
             const createBizappayBill = httpsCallable(functions, 'createBizappayBill');
-            const result = await createBizappayBill({ 
-                bookingId, 
+            const result = await createBizappayBill({
+                bookingId,
                 amount: totalAmount,
                 customerName: customerFullName,
                 customerEmail: customerEmail,
                 customerPhone: customerPhone
             });
-            
+
             // 3. Redirect the user to the Bizappay Payment Page
             const paymentUrl = (result.data as any)?.url;
             if (paymentUrl) {
@@ -88,7 +102,7 @@ const CartPage: React.FC = () => {
     return (
         <div className="min-h-screen bg-slate-50">
             <header className="bg-white shadow-sm">
-                 <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
                     <Logo />
                 </div>
             </header>
@@ -105,7 +119,7 @@ const CartPage: React.FC = () => {
                 ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                         <div className="lg:col-span-2 bg-white p-4 sm:p-6 rounded-xl shadow-md space-y-4">
-                             <h2 className="text-xl font-semibold text-slate-800 border-b pb-4">Order Summary</h2>
+                            <h2 className="text-xl font-semibold text-slate-800 border-b pb-4">Order Summary</h2>
                             <ul className="divide-y divide-slate-200">
                                 {items.map(item => (
                                     <li key={item.cartId} className="py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -143,15 +157,15 @@ const CartPage: React.FC = () => {
                             <div className="space-y-4 mb-6">
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700">Full Name</label>
-                                    <input type="text" value={customerFullName} onChange={e => setCustomerFullName(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-900"/>
+                                    <input type="text" value={customerFullName} onChange={e => setCustomerFullName(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-900" />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700">Phone Number</label>
-                                    <input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-900"/>
+                                    <input type="tel" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-900" />
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-slate-700">Email Address</label>
-                                    <input type="email" value={customerEmail} onChange={e => setCustomerEmail(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-900"/>
+                                    <input type="email" value={customerEmail} onChange={e => setCustomerEmail(e.target.value)} required className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white text-slate-900" />
                                     <p className="mt-2 text-xs text-slate-500">
                                         Please ensure your email is valid. Your indemnity form and payment receipt will be sent here.
                                     </p>

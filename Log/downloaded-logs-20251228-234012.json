@@ -1,0 +1,1046 @@
+[
+  {
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "authenticationInfo": {
+        "principalEmail": "service-913794600574@gcf-admin-robot.iam.gserviceaccount.com"
+      },
+      "requestMetadata": {
+        "requestAttributes": {
+          "time": "2025-12-28T14:49:55.776804Z",
+          "auth": {}
+        },
+        "destinationAttributes": {}
+      },
+      "serviceName": "run.googleapis.com",
+      "methodName": "google.cloud.serverless.internal.InternalServices.ReplaceInternalService",
+      "authorizationInfo": [
+        {
+          "resource": "namespaces/courses-43ee6/services/manualadminupdate",
+          "permission": "run.services.update",
+          "granted": true,
+          "resourceAttributes": {},
+          "permissionType": "ADMIN_WRITE"
+        },
+        {
+          "resource": "namespaces/courses-43ee6/services/manualadminupdate",
+          "permission": "run.services.update",
+          "granted": true,
+          "resourceAttributes": {
+            "service": "run.googleapis.com/",
+            "name": "namespaces/courses-43ee6/services/manualadminupdate",
+            "type": "run.googleapis.com/Service"
+          },
+          "permissionType": "ADMIN_WRITE"
+        }
+      ],
+      "resourceName": "namespaces/courses-43ee6/services/manualadminupdate",
+      "resourceLocation": {
+        "currentLocations": [
+          "us-central1"
+        ]
+      }
+    },
+    "insertId": "vnuy43dtsza",
+    "resource": {
+      "type": "cloud_run_revision",
+      "labels": {
+        "service_name": "manualadminupdate",
+        "revision_name": "",
+        "location": "us-central1",
+        "project_id": "courses-43ee6",
+        "configuration_name": ""
+      }
+    },
+    "timestamp": "2025-12-28T14:49:55.639638Z",
+    "severity": "NOTICE",
+    "logName": "projects/courses-43ee6/logs/cloudaudit.googleapis.com%2Factivity",
+    "receiveTimestamp": "2025-12-28T14:49:55.958993007Z"
+  },
+  {
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "authenticationInfo": {
+        "principalEmail": "service-913794600574@gcf-admin-robot.iam.gserviceaccount.com"
+      },
+      "requestMetadata": {
+        "requestAttributes": {
+          "time": "2025-12-28T14:50:42.945764Z",
+          "auth": {}
+        },
+        "destinationAttributes": {}
+      },
+      "serviceName": "run.googleapis.com",
+      "methodName": "google.cloud.serverless.internal.InternalServices.ReplaceInternalService",
+      "authorizationInfo": [
+        {
+          "resource": "namespaces/courses-43ee6/services/manualadminupdate",
+          "permission": "run.services.update",
+          "granted": true,
+          "resourceAttributes": {},
+          "permissionType": "ADMIN_WRITE"
+        },
+        {
+          "resource": "namespaces/courses-43ee6/services/manualadminupdate",
+          "permission": "run.services.update",
+          "granted": true,
+          "resourceAttributes": {
+            "service": "run.googleapis.com/",
+            "name": "namespaces/courses-43ee6/services/manualadminupdate",
+            "type": "run.googleapis.com/Service"
+          },
+          "permissionType": "ADMIN_WRITE"
+        }
+      ],
+      "resourceName": "namespaces/courses-43ee6/services/manualadminupdate",
+      "resourceLocation": {
+        "currentLocations": [
+          "us-central1"
+        ]
+      }
+    },
+    "insertId": "5u3s58e1hbq2",
+    "resource": {
+      "type": "cloud_run_revision",
+      "labels": {
+        "project_id": "courses-43ee6",
+        "revision_name": "",
+        "service_name": "manualadminupdate",
+        "location": "us-central1",
+        "configuration_name": ""
+      }
+    },
+    "timestamp": "2025-12-28T14:50:42.799281Z",
+    "severity": "NOTICE",
+    "logName": "projects/courses-43ee6/logs/cloudaudit.googleapis.com%2Factivity",
+    "receiveTimestamp": "2025-12-28T14:50:43.175939510Z"
+  },
+  {
+    "textPayload": "Starting new instance. Reason: DEPLOYMENT_ROLLOUT - Instance started due to traffic shifting between revisions due to deployment, traffic split adjustment, or deployment health check.",
+    "insertId": "695143c60009c01ce561a0f3",
+    "resource": {
+      "type": "cloud_run_revision",
+      "labels": {
+        "configuration_name": "manualadminupdate",
+        "service_name": "manualadminupdate",
+        "project_id": "courses-43ee6",
+        "location": "us-central1",
+        "revision_name": "manualadminupdate-00012-tul"
+      }
+    },
+    "timestamp": "2025-12-28T14:50:46.639004Z",
+    "severity": "INFO",
+    "labels": {
+      "instanceId": "0007e26d68144bef40bc015f55184e62fd35f8180697acc378a18e4455d04e90490887f734e33a4c6c7c4a0c2fc6f34ace693773c7c627d77f1a023f08a4e01c51b81f1cc898cdc9326f37f0a853aa",
+      "goog-drz-cloudfunctions-location": "us-central1",
+      "firebase-functions-hash": "fdea36f63f2adc9f351f43d3edada19ef1affabd",
+      "goog-managed-by": "cloudfunctions",
+      "scaling_reason": "DEPLOYMENT_ROLLOUT",
+      "goog-drz-cloudfunctions-id": "manualadminupdate"
+    },
+    "logName": "projects/courses-43ee6/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2025-12-28T14:50:46.643945686Z"
+  },
+  {
+    "textPayload": "Default STARTUP TCP probe succeeded after 1 attempt for container \"worker\" on port 8080.",
+    "insertId": "695143c800035ac934a978e0",
+    "resource": {
+      "type": "cloud_run_revision",
+      "labels": {
+        "service_name": "manualadminupdate",
+        "revision_name": "manualadminupdate-00012-tul",
+        "location": "us-central1",
+        "project_id": "courses-43ee6",
+        "configuration_name": "manualadminupdate"
+      }
+    },
+    "timestamp": "2025-12-28T14:50:48.219849Z",
+    "severity": "INFO",
+    "labels": {
+      "goog-managed-by": "cloudfunctions",
+      "goog-drz-cloudfunctions-id": "manualadminupdate",
+      "goog-drz-cloudfunctions-location": "us-central1",
+      "instanceId": "0007e26d68144bef40bc015f55184e62fd35f8180697acc378a18e4455d04e90490887f734e33a4c6c7c4a0c2fc6f34ace693773c7c627d77f1a023f08a4e01c51b81f1cc898cdc9326f37f0a853aa",
+      "firebase-functions-hash": "fdea36f63f2adc9f351f43d3edada19ef1affabd",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20251207_20_19_5_RC00"
+    },
+    "logName": "projects/courses-43ee6/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2025-12-28T14:50:48.309388679Z"
+  },
+  {
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "status": {
+        "message": "Ready condition status changed to True for Revision manualadminupdate-00012-tul with message: Deploying revision succeeded in 5.29s."
+      },
+      "serviceName": "run.googleapis.com",
+      "methodName": "/InternalServices.ReplaceInternalService",
+      "resourceName": "namespaces/courses-43ee6/revisions/manualadminupdate-00012-tul",
+      "response": {
+        "metadata": {
+          "name": "manualadminupdate-00012-tul",
+          "namespace": "913794600574",
+          "selfLink": "/apis/serving.knative.dev/v1/namespaces/913794600574/revisions/manualadminupdate-00012-tul",
+          "uid": "49887d7c-a017-4c10-9f71-4cb7da520b03",
+          "resourceVersion": "AAZHBECG/18",
+          "generation": 1,
+          "creationTimestamp": "2025-12-28T14:50:43.005014Z",
+          "labels": {
+            "goog-drz-cloudfunctions-location": "us-central1",
+            "firebase-functions-hash": "fdea36f63f2adc9f351f43d3edada19ef1affabd",
+            "goog-drz-cloudfunctions-id": "manualadminupdate",
+            "serving.knative.dev/configuration": "manualadminupdate",
+            "serving.knative.dev/configurationGeneration": "11",
+            "serving.knative.dev/service": "manualadminupdate",
+            "serving.knative.dev/serviceUid": "14174c7e-ce9c-4dda-b65f-87332b0ad8e1",
+            "goog-managed-by": "cloudfunctions",
+            "goog-cloudfunctions-runtime": "nodejs20",
+            "cloud.googleapis.com/location": "us-central1",
+            "serving.knative.dev/route": "manualadminupdate",
+            "run.googleapis.com/startupProbeType": "Default"
+          },
+          "annotations": {
+            "run.googleapis.com/client-name": "cloud-console",
+            "cloudfunctions.googleapis.com/trigger-type": "HTTP_TRIGGER",
+            "autoscaling.knative.dev/maxScale": "20",
+            "serving.knative.dev/creator": "service-913794600574@gcf-admin-robot.iam.gserviceaccount.com",
+            "run.googleapis.com/build-source-location": "{\"worker\":\"gs://gcf-v2-sources-913794600574-us-central1/manualAdminUpdate/function-source.zip#1766933396111428\"}",
+            "run.googleapis.com/build-id": "{\"worker\":\"0fd5adc5-2702-4d3f-889b-973a89b3c791\"}",
+            "run.googleapis.com/build-function-target": "{\"worker\":\"manualAdminUpdate\"}",
+            "run.googleapis.com/operation-id": "bcaf7726-f22d-4d28-8e97-9a71abd65917",
+            "run.googleapis.com/startup-cpu-boost": "true",
+            "run.googleapis.com/base-images": "{\"worker\":\"us-central1-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20\"}"
+          },
+          "ownerReferences": [
+            {
+              "kind": "Configuration",
+              "name": "manualadminupdate",
+              "uid": "d8130d82-25db-4fc0-9a2b-057ade389206",
+              "apiVersion": "serving.knative.dev/v1",
+              "controller": true,
+              "blockOwnerDeletion": true
+            }
+          ]
+        },
+        "apiVersion": "serving.knative.dev/v1",
+        "kind": "Revision",
+        "spec": {
+          "containerConcurrency": 80,
+          "timeoutSeconds": 60,
+          "serviceAccountName": "913794600574-compute@developer.gserviceaccount.com",
+          "containers": [
+            {
+              "name": "worker",
+              "image": "us-central1-docker.pkg.dev/courses-43ee6/gcf-artifacts/courses--43ee6__us--central1__manual_admin_update@sha256:68bdd7b8a295cdfa050714f291322365b0027a7230f69a39bc238bfa2e84ed84",
+              "ports": [
+                {
+                  "name": "http1",
+                  "containerPort": 8080
+                }
+              ],
+              "env": [
+                {
+                  "name": "FIREBASE_CONFIG",
+                  "value": "{\"projectId\":\"courses-43ee6\",\"storageBucket\":\"courses-43ee6.firebasestorage.app\"}"
+                },
+                {
+                  "name": "GCLOUD_PROJECT",
+                  "value": "courses-43ee6"
+                },
+                {
+                  "name": "EVENTARC_CLOUD_EVENT_SOURCE",
+                  "value": "projects/courses-43ee6/locations/us-central1/services/manualAdminUpdate"
+                },
+                {
+                  "name": "FUNCTION_TARGET",
+                  "value": "manualAdminUpdate"
+                },
+                {
+                  "name": "LOG_EXECUTION_ID",
+                  "value": "true"
+                }
+              ],
+              "resources": {
+                "limits": {
+                  "cpu": "1",
+                  "memory": "256Mi"
+                }
+              },
+              "startupProbe": {
+                "timeoutSeconds": 240,
+                "periodSeconds": 240,
+                "failureThreshold": 1,
+                "tcpSocket": {
+                  "port": 8080
+                }
+              }
+            }
+          ],
+          "runtimeClassName": "run.googleapis.com/linux-base-image-update"
+        },
+        "status": {
+          "observedGeneration": 1,
+          "conditions": [
+            {
+              "type": "Ready",
+              "status": "True",
+              "message": "Deploying revision succeeded in 5.29s.",
+              "lastTransitionTime": "2025-12-28T14:50:48.294239Z"
+            },
+            {
+              "type": "ContainerHealthy",
+              "status": "True",
+              "message": "Containers became healthy in 1.48s.",
+              "lastTransitionTime": "2025-12-28T14:50:48.231369Z"
+            },
+            {
+              "type": "ContainerReady",
+              "status": "True",
+              "message": "Container image import completed in 1.3s.",
+              "lastTransitionTime": "2025-12-28T14:50:44.925978Z"
+            },
+            {
+              "type": "ResourcesAvailable",
+              "status": "True",
+              "message": "Provisioning imported containers completed in 1.58s. Checking container health. This will wait for up to 4m for the configured startup probe, including an initial delay of 0s.",
+              "lastTransitionTime": "2025-12-28T14:50:46.502722Z"
+            }
+          ],
+          "logUrl": "https://console.cloud.google.com/logs/viewer?project=courses-43ee6&resource=cloud_run_revision/service_name/manualadminupdate/revision_name/manualadminupdate-00012-tul&advancedFilter=resource.type%3D%22cloud_run_revision%22%0Aresource.labels.service_name%3D%22manualadminupdate%22%0Aresource.labels.revision_name%3D%22manualadminupdate-00012-tul%22",
+          "imageDigest": "us-central1-docker.pkg.dev/courses-43ee6/gcf-artifacts/courses--43ee6__us--central1__manual_admin_update@sha256:68bdd7b8a295cdfa050714f291322365b0027a7230f69a39bc238bfa2e84ed84",
+          "containerStatuses": [
+            {
+              "name": "worker",
+              "imageDigest": "us-central1-docker.pkg.dev/courses-43ee6/gcf-artifacts/courses--43ee6__us--central1__manual_admin_update@sha256:68bdd7b8a295cdfa050714f291322365b0027a7230f69a39bc238bfa2e84ed84"
+            }
+          ]
+        },
+        "@type": "type.googleapis.com/google.cloud.run.v1.Revision"
+      }
+    },
+    "insertId": "6xyfgldzue4",
+    "resource": {
+      "type": "cloud_run_revision",
+      "labels": {
+        "configuration_name": "manualadminupdate",
+        "revision_name": "manualadminupdate-00012-tul",
+        "project_id": "courses-43ee6",
+        "location": "us-central1",
+        "service_name": "manualadminupdate"
+      }
+    },
+    "timestamp": "2025-12-28T14:50:48.309149Z",
+    "severity": "INFO",
+    "logName": "projects/courses-43ee6/logs/cloudaudit.googleapis.com%2Fsystem_event",
+    "receiveTimestamp": "2025-12-28T14:50:49.622728724Z"
+  },
+  {
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "status": {
+        "message": "Ready condition status changed to True for Service manualadminupdate."
+      },
+      "serviceName": "run.googleapis.com",
+      "methodName": "/InternalServices.ReplaceInternalService",
+      "resourceName": "namespaces/courses-43ee6/services/manualadminupdate",
+      "response": {
+        "metadata": {
+          "name": "manualadminupdate",
+          "namespace": "913794600574",
+          "selfLink": "/apis/serving.knative.dev/v1/namespaces/913794600574/services/manualadminupdate",
+          "uid": "14174c7e-ce9c-4dda-b65f-87332b0ad8e1",
+          "resourceVersion": "AAZHBECbWLI",
+          "generation": 12,
+          "creationTimestamp": "2025-12-26T21:47:12.903731Z",
+          "labels": {
+            "goog-drz-cloudfunctions-location": "us-central1",
+            "firebase-functions-hash": "fdea36f63f2adc9f351f43d3edada19ef1affabd",
+            "goog-managed-by": "cloudfunctions",
+            "goog-cloudfunctions-runtime": "nodejs20",
+            "cloud.googleapis.com/location": "us-central1",
+            "goog-drz-cloudfunctions-id": "manualadminupdate"
+          },
+          "annotations": {
+            "serving.knative.dev/creator": "service-913794600574@gcf-admin-robot.iam.gserviceaccount.com",
+            "serving.knative.dev/lastModifier": "service-913794600574@gcf-admin-robot.iam.gserviceaccount.com",
+            "run.googleapis.com/custom-audiences": "[\"https://us-central1-courses-43ee6.cloudfunctions.net/manualAdminUpdate\"]",
+            "run.googleapis.com/client-name": "cloud-console",
+            "cloudfunctions.googleapis.com/function-id": "manualAdminUpdate",
+            "run.googleapis.com/build-source-location": "gs://gcf-v2-sources-913794600574-us-central1/manualAdminUpdate/function-source.zip#1766933396111428",
+            "run.googleapis.com/build-environment-variables": "{\"GOOGLE_NODE_RUN_SCRIPTS\":\"\"}",
+            "run.googleapis.com/build-function-target": "manualAdminUpdate",
+            "run.googleapis.com/build-service-account": "projects/courses-43ee6/serviceAccounts/913794600574-compute@developer.gserviceaccount.com",
+            "run.googleapis.com/build-enable-automatic-updates": "true",
+            "run.googleapis.com/build-base-image": "us-central1-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20",
+            "run.googleapis.com/build-image-uri": "us-central1-docker.pkg.dev/courses-43ee6/gcf-artifacts/courses--43ee6__us--central1__manual_admin_update:version_1",
+            "run.googleapis.com/build-name": "projects/913794600574/locations/us-central1/builds/0fd5adc5-2702-4d3f-889b-973a89b3c791",
+            "run.googleapis.com/operation-id": "bcaf7726-f22d-4d28-8e97-9a71abd65917",
+            "run.googleapis.com/ingress": "all",
+            "run.googleapis.com/ingress-status": "all",
+            "run.googleapis.com/invoker-iam-disabled": "true",
+            "run.googleapis.com/maxScale": "20",
+            "run.googleapis.com/urls": "[\"https://manualadminupdate-913794600574.us-central1.run.app\",\"https://us-central1-courses-43ee6.cloudfunctions.net/manualAdminUpdate\",\"https://manualadminupdate-2n7sc53hoa-uc.a.run.app\"]"
+          }
+        },
+        "apiVersion": "serving.knative.dev/v1",
+        "kind": "Service",
+        "spec": {
+          "template": {
+            "metadata": {
+              "name": "manualadminupdate-00012-tul",
+              "labels": {
+                "goog-drz-cloudfunctions-location": "us-central1",
+                "firebase-functions-hash": "fdea36f63f2adc9f351f43d3edada19ef1affabd",
+                "goog-drz-cloudfunctions-id": "manualadminupdate",
+                "run.googleapis.com/startupProbeType": "Default"
+              },
+              "annotations": {
+                "run.googleapis.com/client-name": "cloud-console",
+                "cloudfunctions.googleapis.com/trigger-type": "HTTP_TRIGGER",
+                "autoscaling.knative.dev/maxScale": "20",
+                "run.googleapis.com/base-images": "{\"worker\":\"us-central1-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20\"}",
+                "run.googleapis.com/startup-cpu-boost": "true"
+              }
+            },
+            "spec": {
+              "containerConcurrency": 80,
+              "timeoutSeconds": 60,
+              "serviceAccountName": "913794600574-compute@developer.gserviceaccount.com",
+              "containers": [
+                {
+                  "name": "worker",
+                  "image": "us-central1-docker.pkg.dev/courses-43ee6/gcf-artifacts/courses--43ee6__us--central1__manual_admin_update:version_1",
+                  "ports": [
+                    {
+                      "name": "http1",
+                      "containerPort": 8080
+                    }
+                  ],
+                  "env": [
+                    {
+                      "name": "FIREBASE_CONFIG",
+                      "value": "{\"projectId\":\"courses-43ee6\",\"storageBucket\":\"courses-43ee6.firebasestorage.app\"}"
+                    },
+                    {
+                      "name": "GCLOUD_PROJECT",
+                      "value": "courses-43ee6"
+                    },
+                    {
+                      "name": "EVENTARC_CLOUD_EVENT_SOURCE",
+                      "value": "projects/courses-43ee6/locations/us-central1/services/manualAdminUpdate"
+                    },
+                    {
+                      "name": "FUNCTION_TARGET",
+                      "value": "manualAdminUpdate"
+                    },
+                    {
+                      "name": "LOG_EXECUTION_ID",
+                      "value": "true"
+                    }
+                  ],
+                  "resources": {
+                    "limits": {
+                      "cpu": "1",
+                      "memory": "256Mi"
+                    }
+                  },
+                  "startupProbe": {
+                    "timeoutSeconds": 240,
+                    "periodSeconds": 240,
+                    "failureThreshold": 1,
+                    "tcpSocket": {
+                      "port": 8080
+                    }
+                  }
+                }
+              ],
+              "runtimeClassName": "run.googleapis.com/linux-base-image-update"
+            }
+          },
+          "traffic": [
+            {
+              "percent": 100,
+              "latestRevision": true
+            }
+          ]
+        },
+        "status": {
+          "observedGeneration": 12,
+          "conditions": [
+            {
+              "type": "Ready",
+              "status": "True",
+              "lastTransitionTime": "2025-12-28T14:50:49.627826Z"
+            },
+            {
+              "type": "BaseImageValidated",
+              "status": "True",
+              "severity": "Info"
+            },
+            {
+              "type": "ConfigurationsReady",
+              "status": "True",
+              "lastTransitionTime": "2025-12-28T14:50:45.115817Z"
+            },
+            {
+              "type": "RoutesReady",
+              "status": "True",
+              "lastTransitionTime": "2025-12-28T14:50:49.579467Z"
+            }
+          ],
+          "latestReadyRevisionName": "manualadminupdate-00012-tul",
+          "latestCreatedRevisionName": "manualadminupdate-00012-tul",
+          "traffic": [
+            {
+              "revisionName": "manualadminupdate-00012-tul",
+              "percent": 100,
+              "latestRevision": true
+            }
+          ],
+          "url": "https://manualadminupdate-2n7sc53hoa-uc.a.run.app",
+          "address": {
+            "url": "https://manualadminupdate-2n7sc53hoa-uc.a.run.app"
+          }
+        },
+        "@type": "type.googleapis.com/google.cloud.run.v1.Service"
+      }
+    },
+    "insertId": "6fk7h5dskcu",
+    "resource": {
+      "type": "cloud_run_revision",
+      "labels": {
+        "service_name": "manualadminupdate",
+        "project_id": "courses-43ee6",
+        "configuration_name": "",
+        "location": "us-central1",
+        "revision_name": ""
+      }
+    },
+    "timestamp": "2025-12-28T14:50:49.645475Z",
+    "severity": "INFO",
+    "logName": "projects/courses-43ee6/logs/cloudaudit.googleapis.com%2Fsystem_event",
+    "receiveTimestamp": "2025-12-28T14:50:50.601085740Z"
+  },
+  {
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "authenticationInfo": {
+        "principalEmail": "service-913794600574@gcf-admin-robot.iam.gserviceaccount.com"
+      },
+      "requestMetadata": {
+        "requestAttributes": {
+          "time": "2025-12-28T15:16:46.138851Z",
+          "auth": {}
+        },
+        "destinationAttributes": {}
+      },
+      "serviceName": "run.googleapis.com",
+      "methodName": "google.cloud.serverless.internal.InternalServices.ReplaceInternalService",
+      "authorizationInfo": [
+        {
+          "resource": "namespaces/courses-43ee6/services/manualadminupdate",
+          "permission": "run.services.update",
+          "granted": true,
+          "resourceAttributes": {},
+          "permissionType": "ADMIN_WRITE"
+        },
+        {
+          "resource": "namespaces/courses-43ee6/services/manualadminupdate",
+          "permission": "run.services.update",
+          "granted": true,
+          "resourceAttributes": {
+            "service": "run.googleapis.com/",
+            "name": "namespaces/courses-43ee6/services/manualadminupdate",
+            "type": "run.googleapis.com/Service"
+          },
+          "permissionType": "ADMIN_WRITE"
+        }
+      ],
+      "resourceName": "namespaces/courses-43ee6/services/manualadminupdate",
+      "resourceLocation": {
+        "currentLocations": [
+          "us-central1"
+        ]
+      }
+    },
+    "insertId": "-quy9f1e1j4ow",
+    "resource": {
+      "type": "cloud_run_revision",
+      "labels": {
+        "project_id": "courses-43ee6",
+        "service_name": "manualadminupdate",
+        "configuration_name": "",
+        "location": "us-central1",
+        "revision_name": ""
+      }
+    },
+    "timestamp": "2025-12-28T15:16:45.977937Z",
+    "severity": "NOTICE",
+    "logName": "projects/courses-43ee6/logs/cloudaudit.googleapis.com%2Factivity",
+    "receiveTimestamp": "2025-12-28T15:16:46.909846350Z"
+  },
+  {
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "authenticationInfo": {
+        "principalEmail": "service-913794600574@gcf-admin-robot.iam.gserviceaccount.com"
+      },
+      "requestMetadata": {
+        "requestAttributes": {
+          "time": "2025-12-28T15:17:33.547995Z",
+          "auth": {}
+        },
+        "destinationAttributes": {}
+      },
+      "serviceName": "run.googleapis.com",
+      "methodName": "google.cloud.serverless.internal.InternalServices.ReplaceInternalService",
+      "authorizationInfo": [
+        {
+          "resource": "namespaces/courses-43ee6/services/manualadminupdate",
+          "permission": "run.services.update",
+          "granted": true,
+          "resourceAttributes": {},
+          "permissionType": "ADMIN_WRITE"
+        },
+        {
+          "resource": "namespaces/courses-43ee6/services/manualadminupdate",
+          "permission": "run.services.update",
+          "granted": true,
+          "resourceAttributes": {
+            "service": "run.googleapis.com/",
+            "name": "namespaces/courses-43ee6/services/manualadminupdate",
+            "type": "run.googleapis.com/Service"
+          },
+          "permissionType": "ADMIN_WRITE"
+        }
+      ],
+      "resourceName": "namespaces/courses-43ee6/services/manualadminupdate",
+      "resourceLocation": {
+        "currentLocations": [
+          "us-central1"
+        ]
+      }
+    },
+    "insertId": "-tcgjdrddfo8",
+    "resource": {
+      "type": "cloud_run_revision",
+      "labels": {
+        "service_name": "manualadminupdate",
+        "location": "us-central1",
+        "configuration_name": "",
+        "revision_name": "",
+        "project_id": "courses-43ee6"
+      }
+    },
+    "timestamp": "2025-12-28T15:17:33.430512Z",
+    "severity": "NOTICE",
+    "logName": "projects/courses-43ee6/logs/cloudaudit.googleapis.com%2Factivity",
+    "receiveTimestamp": "2025-12-28T15:17:33.746452450Z"
+  },
+  {
+    "textPayload": "Starting new instance. Reason: DEPLOYMENT_ROLLOUT - Instance started due to traffic shifting between revisions due to deployment, traffic split adjustment, or deployment health check.",
+    "insertId": "69514a11000d9048c7086f56",
+    "resource": {
+      "type": "cloud_run_revision",
+      "labels": {
+        "revision_name": "manualadminupdate-00013-moz",
+        "configuration_name": "manualadminupdate",
+        "project_id": "courses-43ee6",
+        "location": "us-central1",
+        "service_name": "manualadminupdate"
+      }
+    },
+    "timestamp": "2025-12-28T15:17:37.888904Z",
+    "severity": "INFO",
+    "labels": {
+      "firebase-functions-hash": "d9e64d42a016ed67abeaec67691dbdcf67b607e5",
+      "scaling_reason": "DEPLOYMENT_ROLLOUT",
+      "goog-drz-cloudfunctions-location": "us-central1",
+      "instanceId": "0007e26d682ea5ccdb36a364ddc8804c452f016159ec1f8a18167cc94432cedc1d027cdd7c3b1fa1c1535f59a456d568268464fca62278c436d0856481aa40342dac3d5625bc3c3cfca788d0f880",
+      "goog-managed-by": "cloudfunctions",
+      "goog-drz-cloudfunctions-id": "manualadminupdate"
+    },
+    "logName": "projects/courses-43ee6/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2025-12-28T15:17:37.893611279Z"
+  },
+  {
+    "textPayload": "Default STARTUP TCP probe succeeded after 1 attempt for container \"worker\" on port 8080.",
+    "insertId": "69514a13000c3c06225da660",
+    "resource": {
+      "type": "cloud_run_revision",
+      "labels": {
+        "service_name": "manualadminupdate",
+        "configuration_name": "manualadminupdate",
+        "revision_name": "manualadminupdate-00013-moz",
+        "project_id": "courses-43ee6",
+        "location": "us-central1"
+      }
+    },
+    "timestamp": "2025-12-28T15:17:39.801798Z",
+    "severity": "INFO",
+    "labels": {
+      "goog-drz-cloudfunctions-location": "us-central1",
+      "goog-drz-cloudfunctions-id": "manualadminupdate",
+      "instanceId": "0007e26d682ea5ccdb36a364ddc8804c452f016159ec1f8a18167cc94432cedc1d027cdd7c3b1fa1c1535f59a456d568268464fca62278c436d0856481aa40342dac3d5625bc3c3cfca788d0f880",
+      "run.googleapis.com/base_image_versions": "us-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20:nodejs20_20251207_20_19_5_RC00",
+      "firebase-functions-hash": "d9e64d42a016ed67abeaec67691dbdcf67b607e5",
+      "goog-managed-by": "cloudfunctions"
+    },
+    "logName": "projects/courses-43ee6/logs/run.googleapis.com%2Fvarlog%2Fsystem",
+    "receiveTimestamp": "2025-12-28T15:17:39.891476536Z"
+  },
+  {
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "status": {
+        "message": "Ready condition status changed to True for Revision manualadminupdate-00013-moz with message: Deploying revision succeeded in 6.29s."
+      },
+      "serviceName": "run.googleapis.com",
+      "methodName": "/InternalServices.ReplaceInternalService",
+      "resourceName": "namespaces/courses-43ee6/revisions/manualadminupdate-00013-moz",
+      "response": {
+        "metadata": {
+          "name": "manualadminupdate-00013-moz",
+          "namespace": "913794600574",
+          "selfLink": "/apis/serving.knative.dev/v1/namespaces/913794600574/revisions/manualadminupdate-00013-moz",
+          "uid": "339313f8-6254-4ec0-8f0c-9d4e85b86fba",
+          "resourceVersion": "AAZHBKCVxJA",
+          "generation": 1,
+          "creationTimestamp": "2025-12-28T15:17:33.587815Z",
+          "labels": {
+            "goog-drz-cloudfunctions-location": "us-central1",
+            "firebase-functions-hash": "d9e64d42a016ed67abeaec67691dbdcf67b607e5",
+            "goog-drz-cloudfunctions-id": "manualadminupdate",
+            "serving.knative.dev/configuration": "manualadminupdate",
+            "serving.knative.dev/configurationGeneration": "12",
+            "serving.knative.dev/service": "manualadminupdate",
+            "serving.knative.dev/serviceUid": "14174c7e-ce9c-4dda-b65f-87332b0ad8e1",
+            "goog-managed-by": "cloudfunctions",
+            "goog-cloudfunctions-runtime": "nodejs20",
+            "cloud.googleapis.com/location": "us-central1",
+            "serving.knative.dev/route": "manualadminupdate",
+            "run.googleapis.com/startupProbeType": "Default"
+          },
+          "annotations": {
+            "run.googleapis.com/client-name": "cloud-console",
+            "cloudfunctions.googleapis.com/trigger-type": "HTTP_TRIGGER",
+            "autoscaling.knative.dev/maxScale": "20",
+            "serving.knative.dev/creator": "service-913794600574@gcf-admin-robot.iam.gserviceaccount.com",
+            "run.googleapis.com/build-source-location": "{\"worker\":\"gs://gcf-v2-sources-913794600574-us-central1/manualAdminUpdate/function-source.zip#1766935006431904\"}",
+            "run.googleapis.com/build-id": "{\"worker\":\"9103c4d3-f8ae-43dd-b7c0-dc3377fa0a98\"}",
+            "run.googleapis.com/build-function-target": "{\"worker\":\"manualAdminUpdate\"}",
+            "run.googleapis.com/operation-id": "ca911fc3-a049-4fa1-9c2b-b7b8cdb0c35c",
+            "run.googleapis.com/startup-cpu-boost": "true",
+            "run.googleapis.com/base-images": "{\"worker\":\"us-central1-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20\"}"
+          },
+          "ownerReferences": [
+            {
+              "kind": "Configuration",
+              "name": "manualadminupdate",
+              "uid": "d8130d82-25db-4fc0-9a2b-057ade389206",
+              "apiVersion": "serving.knative.dev/v1",
+              "controller": true,
+              "blockOwnerDeletion": true
+            }
+          ]
+        },
+        "apiVersion": "serving.knative.dev/v1",
+        "kind": "Revision",
+        "spec": {
+          "containerConcurrency": 80,
+          "timeoutSeconds": 60,
+          "serviceAccountName": "913794600574-compute@developer.gserviceaccount.com",
+          "containers": [
+            {
+              "name": "worker",
+              "image": "us-central1-docker.pkg.dev/courses-43ee6/gcf-artifacts/courses--43ee6__us--central1__manual_admin_update@sha256:facaf27ab603ac679bcbbbc9d86686c26507d66662781812db2ab926cd131a69",
+              "ports": [
+                {
+                  "name": "http1",
+                  "containerPort": 8080
+                }
+              ],
+              "env": [
+                {
+                  "name": "FIREBASE_CONFIG",
+                  "value": "{\"projectId\":\"courses-43ee6\",\"storageBucket\":\"courses-43ee6.firebasestorage.app\"}"
+                },
+                {
+                  "name": "GCLOUD_PROJECT",
+                  "value": "courses-43ee6"
+                },
+                {
+                  "name": "EVENTARC_CLOUD_EVENT_SOURCE",
+                  "value": "projects/courses-43ee6/locations/us-central1/services/manualAdminUpdate"
+                },
+                {
+                  "name": "FUNCTION_TARGET",
+                  "value": "manualAdminUpdate"
+                },
+                {
+                  "name": "LOG_EXECUTION_ID",
+                  "value": "true"
+                }
+              ],
+              "resources": {
+                "limits": {
+                  "cpu": "1",
+                  "memory": "256Mi"
+                }
+              },
+              "startupProbe": {
+                "timeoutSeconds": 240,
+                "periodSeconds": 240,
+                "failureThreshold": 1,
+                "tcpSocket": {
+                  "port": 8080
+                }
+              }
+            }
+          ],
+          "runtimeClassName": "run.googleapis.com/linux-base-image-update"
+        },
+        "status": {
+          "observedGeneration": 1,
+          "conditions": [
+            {
+              "type": "Ready",
+              "status": "True",
+              "message": "Deploying revision succeeded in 6.29s.",
+              "lastTransitionTime": "2025-12-28T15:17:39.874960Z"
+            },
+            {
+              "type": "ContainerHealthy",
+              "status": "True",
+              "message": "Containers became healthy in 1.8s.",
+              "lastTransitionTime": "2025-12-28T15:17:39.814249Z"
+            },
+            {
+              "type": "ContainerReady",
+              "status": "True",
+              "message": "Container image import completed in 1.22s.",
+              "lastTransitionTime": "2025-12-28T15:17:35.412813Z"
+            },
+            {
+              "type": "ResourcesAvailable",
+              "status": "True",
+              "message": "Provisioning imported containers completed in 2.36s. Checking container health. This will wait for up to 4m for the configured startup probe, including an initial delay of 0s.",
+              "lastTransitionTime": "2025-12-28T15:17:37.773735Z"
+            }
+          ],
+          "logUrl": "https://console.cloud.google.com/logs/viewer?project=courses-43ee6&resource=cloud_run_revision/service_name/manualadminupdate/revision_name/manualadminupdate-00013-moz&advancedFilter=resource.type%3D%22cloud_run_revision%22%0Aresource.labels.service_name%3D%22manualadminupdate%22%0Aresource.labels.revision_name%3D%22manualadminupdate-00013-moz%22",
+          "imageDigest": "us-central1-docker.pkg.dev/courses-43ee6/gcf-artifacts/courses--43ee6__us--central1__manual_admin_update@sha256:facaf27ab603ac679bcbbbc9d86686c26507d66662781812db2ab926cd131a69",
+          "containerStatuses": [
+            {
+              "name": "worker",
+              "imageDigest": "us-central1-docker.pkg.dev/courses-43ee6/gcf-artifacts/courses--43ee6__us--central1__manual_admin_update@sha256:facaf27ab603ac679bcbbbc9d86686c26507d66662781812db2ab926cd131a69"
+            }
+          ]
+        },
+        "@type": "type.googleapis.com/google.cloud.run.v1.Revision"
+      }
+    },
+    "insertId": "yfgjbhe17xmu",
+    "resource": {
+      "type": "cloud_run_revision",
+      "labels": {
+        "revision_name": "manualadminupdate-00013-moz",
+        "location": "us-central1",
+        "project_id": "courses-43ee6",
+        "configuration_name": "manualadminupdate",
+        "service_name": "manualadminupdate"
+      }
+    },
+    "timestamp": "2025-12-28T15:17:39.889470Z",
+    "severity": "INFO",
+    "logName": "projects/courses-43ee6/logs/cloudaudit.googleapis.com%2Fsystem_event",
+    "receiveTimestamp": "2025-12-28T15:17:40.682125323Z"
+  },
+  {
+    "protoPayload": {
+      "@type": "type.googleapis.com/google.cloud.audit.AuditLog",
+      "status": {
+        "message": "Ready condition status changed to True for Service manualadminupdate."
+      },
+      "serviceName": "run.googleapis.com",
+      "methodName": "/InternalServices.ReplaceInternalService",
+      "resourceName": "namespaces/courses-43ee6/services/manualadminupdate",
+      "response": {
+        "metadata": {
+          "name": "manualadminupdate",
+          "namespace": "913794600574",
+          "selfLink": "/apis/serving.knative.dev/v1/namespaces/913794600574/services/manualadminupdate",
+          "uid": "14174c7e-ce9c-4dda-b65f-87332b0ad8e1",
+          "resourceVersion": "AAZHBKCqguE",
+          "generation": 13,
+          "creationTimestamp": "2025-12-26T21:47:12.903731Z",
+          "labels": {
+            "goog-drz-cloudfunctions-location": "us-central1",
+            "firebase-functions-hash": "d9e64d42a016ed67abeaec67691dbdcf67b607e5",
+            "goog-managed-by": "cloudfunctions",
+            "goog-cloudfunctions-runtime": "nodejs20",
+            "cloud.googleapis.com/location": "us-central1",
+            "goog-drz-cloudfunctions-id": "manualadminupdate"
+          },
+          "annotations": {
+            "serving.knative.dev/creator": "service-913794600574@gcf-admin-robot.iam.gserviceaccount.com",
+            "serving.knative.dev/lastModifier": "service-913794600574@gcf-admin-robot.iam.gserviceaccount.com",
+            "run.googleapis.com/custom-audiences": "[\"https://us-central1-courses-43ee6.cloudfunctions.net/manualAdminUpdate\"]",
+            "run.googleapis.com/client-name": "cloud-console",
+            "cloudfunctions.googleapis.com/function-id": "manualAdminUpdate",
+            "run.googleapis.com/build-source-location": "gs://gcf-v2-sources-913794600574-us-central1/manualAdminUpdate/function-source.zip#1766935006431904",
+            "run.googleapis.com/build-environment-variables": "{\"GOOGLE_NODE_RUN_SCRIPTS\":\"\"}",
+            "run.googleapis.com/build-function-target": "manualAdminUpdate",
+            "run.googleapis.com/build-service-account": "projects/courses-43ee6/serviceAccounts/913794600574-compute@developer.gserviceaccount.com",
+            "run.googleapis.com/build-enable-automatic-updates": "true",
+            "run.googleapis.com/build-base-image": "us-central1-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20",
+            "run.googleapis.com/build-image-uri": "us-central1-docker.pkg.dev/courses-43ee6/gcf-artifacts/courses--43ee6__us--central1__manual_admin_update:version_1",
+            "run.googleapis.com/build-name": "projects/913794600574/locations/us-central1/builds/9103c4d3-f8ae-43dd-b7c0-dc3377fa0a98",
+            "run.googleapis.com/operation-id": "ca911fc3-a049-4fa1-9c2b-b7b8cdb0c35c",
+            "run.googleapis.com/ingress": "all",
+            "run.googleapis.com/ingress-status": "all",
+            "run.googleapis.com/invoker-iam-disabled": "true",
+            "run.googleapis.com/maxScale": "20",
+            "run.googleapis.com/urls": "[\"https://manualadminupdate-913794600574.us-central1.run.app\",\"https://us-central1-courses-43ee6.cloudfunctions.net/manualAdminUpdate\",\"https://manualadminupdate-2n7sc53hoa-uc.a.run.app\"]"
+          }
+        },
+        "apiVersion": "serving.knative.dev/v1",
+        "kind": "Service",
+        "spec": {
+          "template": {
+            "metadata": {
+              "name": "manualadminupdate-00013-moz",
+              "labels": {
+                "goog-drz-cloudfunctions-location": "us-central1",
+                "firebase-functions-hash": "d9e64d42a016ed67abeaec67691dbdcf67b607e5",
+                "goog-drz-cloudfunctions-id": "manualadminupdate",
+                "run.googleapis.com/startupProbeType": "Default"
+              },
+              "annotations": {
+                "run.googleapis.com/client-name": "cloud-console",
+                "cloudfunctions.googleapis.com/trigger-type": "HTTP_TRIGGER",
+                "autoscaling.knative.dev/maxScale": "20",
+                "run.googleapis.com/base-images": "{\"worker\":\"us-central1-docker.pkg.dev/serverless-runtimes/google-22-full/runtimes/nodejs20\"}",
+                "run.googleapis.com/startup-cpu-boost": "true"
+              }
+            },
+            "spec": {
+              "containerConcurrency": 80,
+              "timeoutSeconds": 60,
+              "serviceAccountName": "913794600574-compute@developer.gserviceaccount.com",
+              "containers": [
+                {
+                  "name": "worker",
+                  "image": "us-central1-docker.pkg.dev/courses-43ee6/gcf-artifacts/courses--43ee6__us--central1__manual_admin_update:version_1",
+                  "ports": [
+                    {
+                      "name": "http1",
+                      "containerPort": 8080
+                    }
+                  ],
+                  "env": [
+                    {
+                      "name": "FIREBASE_CONFIG",
+                      "value": "{\"projectId\":\"courses-43ee6\",\"storageBucket\":\"courses-43ee6.firebasestorage.app\"}"
+                    },
+                    {
+                      "name": "GCLOUD_PROJECT",
+                      "value": "courses-43ee6"
+                    },
+                    {
+                      "name": "EVENTARC_CLOUD_EVENT_SOURCE",
+                      "value": "projects/courses-43ee6/locations/us-central1/services/manualAdminUpdate"
+                    },
+                    {
+                      "name": "FUNCTION_TARGET",
+                      "value": "manualAdminUpdate"
+                    },
+                    {
+                      "name": "LOG_EXECUTION_ID",
+                      "value": "true"
+                    }
+                  ],
+                  "resources": {
+                    "limits": {
+                      "cpu": "1",
+                      "memory": "256Mi"
+                    }
+                  },
+                  "startupProbe": {
+                    "timeoutSeconds": 240,
+                    "periodSeconds": 240,
+                    "failureThreshold": 1,
+                    "tcpSocket": {
+                      "port": 8080
+                    }
+                  }
+                }
+              ],
+              "runtimeClassName": "run.googleapis.com/linux-base-image-update"
+            }
+          },
+          "traffic": [
+            {
+              "percent": 100,
+              "latestRevision": true
+            }
+          ]
+        },
+        "status": {
+          "observedGeneration": 13,
+          "conditions": [
+            {
+              "type": "Ready",
+              "status": "True",
+              "lastTransitionTime": "2025-12-28T15:17:41.234401Z"
+            },
+            {
+              "type": "BaseImageValidated",
+              "status": "True",
+              "severity": "Info"
+            },
+            {
+              "type": "ConfigurationsReady",
+              "status": "True",
+              "lastTransitionTime": "2025-12-28T15:17:39.916795Z"
+            },
+            {
+              "type": "RoutesReady",
+              "status": "True",
+              "lastTransitionTime": "2025-12-28T15:17:41.194191Z"
+            }
+          ],
+          "latestReadyRevisionName": "manualadminupdate-00013-moz",
+          "latestCreatedRevisionName": "manualadminupdate-00013-moz",
+          "traffic": [
+            {
+              "revisionName": "manualadminupdate-00013-moz",
+              "percent": 100,
+              "latestRevision": true
+            }
+          ],
+          "url": "https://manualadminupdate-2n7sc53hoa-uc.a.run.app",
+          "address": {
+            "url": "https://manualadminupdate-2n7sc53hoa-uc.a.run.app"
+          }
+        },
+        "@type": "type.googleapis.com/google.cloud.run.v1.Service"
+      }
+    },
+    "insertId": "-qwpmcte1r4v0",
+    "resource": {
+      "type": "cloud_run_revision",
+      "labels": {
+        "location": "us-central1",
+        "service_name": "manualadminupdate",
+        "project_id": "courses-43ee6",
+        "revision_name": "",
+        "configuration_name": ""
+      }
+    },
+    "timestamp": "2025-12-28T15:17:41.246500Z",
+    "severity": "INFO",
+    "logName": "projects/courses-43ee6/logs/cloudaudit.googleapis.com%2Fsystem_event",
+    "receiveTimestamp": "2025-12-28T15:17:41.678732724Z"
+  }
+]

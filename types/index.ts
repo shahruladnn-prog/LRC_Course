@@ -1,21 +1,21 @@
 
 export interface Course {
-  id: string;
-  name: string;
-  price: number;
-  category: string;
-  termsAndConditions: string;
-  isHidden: boolean;
-  importantHighlight?: string;
-  sku: string; // Mandatory for Loyverse integration
+    id: string;
+    name: string;
+    price: number;
+    category: string;
+    termsAndConditions: string;
+    isHidden: boolean;
+    importantHighlight?: string;
+    sku: string; // Mandatory for Loyverse integration
 }
 
 export interface Session {
-  id:string;
-  courseId: string;
-  date: string; // Storing date as ISO string e.g., "2024-07-28"
-  totalSlots: number;
-  remainingSlots: number;
+    id: string;
+    courseId: string;
+    date: string; // Storing date as ISO string e.g., "2024-07-28"
+    totalSlots: number;
+    remainingSlots: number;
 }
 
 export interface Category {
@@ -54,6 +54,8 @@ export interface Booking {
     items: BookingItem[];
     totalAmount: number;
     paymentStatus: 'pending' | 'paid' | 'failed';
+    syncStatus?: 'pending' | 'synced' | 'failed';
+    syncError?: string;
     bookingDate: {
         seconds: number;
         nanoseconds: number;
