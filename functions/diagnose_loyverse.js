@@ -1,9 +1,10 @@
 const axios = require("axios");
 
-// --- CREDENTIALS (COPIED FROM INDEX.JS) ---
-const LOYVERSE_TOKEN = "d9d14fd02ac34292ab50e221da50ddb3";
-const LOYVERSE_STORE_ID = "7611fff5-5af4-43e4-8758-3f06a1090eed";
-const LOYVERSE_PAYMENT_ID = "df4f339c-c806-4cf0-83c9-43ef624a78ac";
+// --- CREDENTIALS (set via environment variables before running) ---
+// Usage: LOYVERSE_TOKEN=xxx LOYVERSE_STORE_ID=xxx LOYVERSE_PAYMENT_ID=xxx node diagnose_loyverse.js
+const LOYVERSE_TOKEN = process.env.LOYVERSE_TOKEN || "YOUR_LOYVERSE_TOKEN";
+const LOYVERSE_STORE_ID = process.env.LOYVERSE_STORE_ID || "YOUR_STORE_ID";
+const LOYVERSE_PAYMENT_ID = process.env.LOYVERSE_PAYMENT_ID || "YOUR_PAYMENT_ID";
 
 // CHANGE THIS TO ONE OF YOUR REAL SKUS FOR TESTING
 const TEST_SKU = "10275";
