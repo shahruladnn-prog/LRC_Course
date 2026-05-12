@@ -50,17 +50,27 @@ const CartPage: React.FC = () => {
         setError(null);
         setIsProcessing(true);
 
-        const bookingItems: BookingItem[] = items.map(item => ({
-            productId: item.productId,
-            productName: item.productName,
-            productType: item.productType,
-            sessionId: item.sessionId,
-            sessionDate: item.sessionDate,
-            price: item.price,
-            category: item.category,
-            quantity: item.quantity,
-            addOns: item.addOns,
-        }));
+        const bookingItems: BookingItem[] = items.map(item => {
+            const base: BookingItem = {
+                productId: item.productId,
+                productName: item.productName,
+                productType: item.productType,
+                price: item.price,
+                category: item.category,
+                quantity: item.quantity,
+            };
+            // Only include optional fields when they have values (Firestore rejects undefined)
+            if (item.sessionId) {
+                base.sessionId = item.sessionId;
+            }
+            if (item.sessionDate) {
+                base.sessionDate = item.sessionDate;
+            }
+            if (item.addOns && item.addOns.length > 0) {
+                base.addOns = item.addOns;
+            }
+            return base;
+        });
 
         try {
             // 1. Create the initial booking document with 'pending' status

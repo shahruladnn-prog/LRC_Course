@@ -24,6 +24,9 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, categories, onSave, 
     const [addOnPrice, setAddOnPrice] = useState(25);
     const [addOnVariantField, setAddOnVariantField] = useState('Size');
     const [addOnVariants, setAddOnVariants] = useState('S,M,L,XL');
+    const [image1, setImage1] = useState('');
+    const [image2, setImage2] = useState('');
+    const [image3, setImage3] = useState('');
 
     useEffect(() => {
         if (product) {
@@ -37,6 +40,10 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, categories, onSave, 
             setSku(product.sku || '');
             setEventDate(product.eventDate || '');
             setHasAddOns(product.hasAddOns || false);
+            const imgs = product.images || [];
+            setImage1(imgs[0] || '');
+            setImage2(imgs[1] || '');
+            setImage3(imgs[2] || '');
             if (product.addOns && product.addOns.length > 0) {
                 const a = product.addOns[0];
                 setAddOnName(a.name);
@@ -64,6 +71,9 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, categories, onSave, 
         setAddOnPrice(25);
         setAddOnVariantField('Size');
         setAddOnVariants('S,M,L,XL');
+        setImage1('');
+        setImage2('');
+        setImage3('');
     };
 
     const handleSubmit = (e: FormEvent) => {
@@ -75,6 +85,8 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, categories, onSave, 
             variantField: addOnVariantField,
             variants: addOnVariants.split(',').map(v => v.trim()).filter(v => v),
         }] : [];
+
+        const images = [image1, image2, image3].filter(url => url.trim() !== '');
 
         const productData = {
             name,
@@ -88,6 +100,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, categories, onSave, 
             hasAddOns,
             addOns,
             eventDate: eventDate || '',  // Always string, Firestore rejects undefined
+            images,
         };
 
         if (product) {
@@ -144,10 +157,23 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, categories, onSave, 
                     <div>
                         <label className="block text-sm font-medium text-slate-700">Terms & Conditions</label>
                         <textarea value={termsAndConditions} onChange={e => setTermsAndConditions(e.target.value)} required rows={4} className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 placeholder-slate-500 text-slate-900 bg-white"></textarea>
+                        <p className="mt-1 text-xs text-slate-500">Use Enter for line breaks. They will be preserved on the storefront.</p>
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-slate-700">Important Highlight (Optional)</label>
                         <textarea value={importantHighlight} onChange={e => setImportantHighlight(e.target.value)} rows={3} className="mt-1 block w-full px-3 py-2 border border-slate-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 placeholder-slate-500 text-slate-900 bg-white" placeholder="e.g., Early bird discount ends soon!"></textarea>
+                        <p className="mt-1 text-xs text-slate-500">Use Enter for line breaks. They will be preserved on the storefront.</p>
+                    </div>
+
+                    {/* Product Images */}
+                    <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Product Images (Optional — max 3)</label>
+                        <p className="text-xs text-slate-500 mb-3">Paste direct image URLs (e.g., from Imgur). Leave empty if none.</p>
+                        <div className="space-y-2">
+                            <input type="text" value={image1} onChange={e => setImage1(e.target.value)} placeholder="Image 1 URL" className="block w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm bg-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+                            <input type="text" value={image2} onChange={e => setImage2(e.target.value)} placeholder="Image 2 URL" className="block w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm bg-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+                            <input type="text" value={image3} onChange={e => setImage3(e.target.value)} placeholder="Image 3 URL" className="block w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm bg-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+                        </div>
                     </div>
 
                     {/* Add-on Builder */}

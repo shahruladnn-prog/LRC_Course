@@ -8,6 +8,7 @@ import Storefront from './pages/Storefront';
 import CartPage from './pages/CartPage';
 import OrderConfirmationPage from './pages/OrderConfirmationPage';
 import ContentPage from './pages/ContentPage';
+import ProductDetailPage from './pages/ProductDetailPage';
 import ProtectedRoute from './components/common/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
@@ -20,6 +21,7 @@ const App: React.FC = () => {
           <HashRouter>
             <Routes>
               <Route path="/" element={<Storefront />} />
+              <Route path="/product/:id" element={<ProductDetailPage />} />
               <Route path="/cart" element={<CartPage />} />
               <Route path="/confirmation" element={<OrderConfirmationPage />} />
               <Route path="/privacy" element={<ContentPage type="privacy" />} />

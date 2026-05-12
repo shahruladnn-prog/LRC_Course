@@ -17,6 +17,7 @@ const productConverter = {
             hasAddOns: product.hasAddOns || false,
             addOns: product.addOns || [],
             eventDate: product.eventDate || '',
+            images: product.images || [],
         };
     },
     fromFirestore(
@@ -37,6 +38,7 @@ const productConverter = {
             hasAddOns: data.hasAddOns || false,
             addOns: data.addOns || [],
             eventDate: data.eventDate || '',
+            images: Array.isArray(data.images) ? data.images : [],
         };
     },
 };
@@ -51,6 +53,7 @@ const courseConverter = {
             isHidden: course.isHidden,
             importantHighlight: course.importantHighlight || '',
             sku: course.sku,
+            images: course.images || [],
         };
     },
     fromFirestore(
@@ -64,9 +67,10 @@ const courseConverter = {
             price: data.price,
             category: data.category,
             termsAndConditions: data.termsAndConditions,
-            isHidden: data.isHidden || false, // Default to false if not set
+            isHidden: data.isHidden || false,
             importantHighlight: data.importantHighlight || '',
-            sku: data.sku || '', // Default to empty string if not set
+            sku: data.sku || '',
+            images: Array.isArray(data.images) ? data.images : [],
         };
     },
 };
@@ -190,6 +194,7 @@ export const getProducts = async (): Promise<Product[]> => {
                 id: doc.id,
                 hasAddOns: false,
                 addOns: [],
+                images: [],
                 ...doc.data(),
                 type: 'course' as const,
             } as unknown as Product));
@@ -223,6 +228,7 @@ export const addProduct = async (productData: Omit<Product, 'id'>) => {
         hasAddOns: productData.hasAddOns ?? false,
         addOns: productData.addOns ?? [],
         eventDate: productData.eventDate || '',
+        images: productData.images || [],
     });
 };
 
@@ -292,6 +298,25 @@ export const getSessionsForCourse = async (courseId: string): Promise<Session[]>
 
 export const getSessionsForProduct = getSessionsForCourse; // Alias — same function, cleaner name
 
+/** Fetch ALL sessions from Firestore (for batch processing on storefront). */
+export const getAllSessions = async (): Promise<Session[]> => {
+    try {
+        const snapshot = await getDocs(collection(db, 'sessions'));
+        return snapshot.docs.map(doc => {
+            const d = doc.data();
+            return {
+                id: doc.id,
+                productId: d.productId || d.courseId || '',
+                date: d.date || '',
+                totalSlots: d.totalSlots || 0,
+                remainingSlots: d.remainingSlots || 0,
+            } as Session;
+        });
+    } catch (_) {
+        return [];
+    }
+};
+
 export const addSession = async (sessionData: Omit<Session, 'id'>) => {
     await addDoc(collection(db, 'sessions'), {
         ...sessionData,
@@ -338,11 +363,27 @@ export const getBookings = async (): Promise<Booking[]> => {
     return bookingSnapshot.docs.map(doc => doc.data());
 };
 
+/** Sanitize an object for Firestore by removing undefined values (including nested). */
+const removeUndefined = (obj: any): any => {
+    if (Array.isArray(obj)) {
+        return obj.map(removeUndefined);
+    }
+    if (obj !== null && typeof obj === 'object') {
+        return Object.fromEntries(
+            Object.entries(obj)
+                .filter(([_, v]) => v !== undefined)
+                .map(([k, v]) => [k, removeUndefined(v)])
+        );
+    }
+    return obj;
+};
+
 export const addBooking = async (bookingData: Omit<Booking, 'id'>): Promise<string> => {
-    const docRef = await addDoc(collection(db, 'bookings'), {
+    const sanitized = removeUndefined({
         ...bookingData,
-        bookingDate: Timestamp.now()
+        bookingDate: Timestamp.now(),
     });
+    const docRef = await addDoc(collection(db, 'bookings').withConverter(bookingConverter), sanitized);
     return docRef.id;
 };
 

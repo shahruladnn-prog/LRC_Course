@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Product } from '../types';
-import { getProducts } from '../services/firestoreService';
+import { Product, Session } from '../types';
+import { getProducts, getAllSessions } from '../services/firestoreService';
 import { useCart } from '../hooks/useCart';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import Logo from '../components/common/Logo';
@@ -45,33 +45,55 @@ const StorefrontHeader: React.FC = () => {
 
 const Storefront: React.FC = () => {
     const [products, setProducts] = useState<Product[]>([]);
+    const [allSessions, setAllSessions] = useState<Session[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState<string>('All');
     const [sortOption, setSortOption] = useState<string>('name-asc');
 
     useEffect(() => {
-        const fetchProducts = async () => {
+        const fetchData = async () => {
             setIsLoading(true);
             try {
-                const allProducts = await getProducts();
+                const [allProducts, sessions] = await Promise.all([
+                    getProducts(),
+                    getAllSessions(),
+                ]);
                 const visibleProducts = allProducts.filter(product => !product.isHidden);
                 setProducts(visibleProducts);
+                setAllSessions(sessions);
             } catch (error) {
-                console.error("Failed to fetch products:", error);
+                console.error("Failed to fetch products or sessions:", error);
             } finally {
                 setIsLoading(false);
             }
         };
-        fetchProducts();
+        fetchData();
     }, []);
 
     // Extract unique categories
     const categories = ['All', ...Array.from(new Set(products.map(c => c.category)))].sort();
 
+    // Compute isFullyBooked per product
+    const getProductSessions = (product: Product): Session[] =>
+        allSessions.filter(s => s.productId === product.id);
+
+    const isProductFullyBooked = (product: Product): boolean => {
+        if (product.type !== 'course' && product.type !== 'event_ticket') return false;
+        const productSessions = getProductSessions(product);
+        if (productSessions.length === 0) return false; // No sessions loaded yet, don't mark as sold out
+        return productSessions.every(s => s.remainingSlots <= 0);
+    };
+
     // Filter and Sort Logic
     const filteredProducts = products
         .filter(product => selectedCategory === 'All' || product.category === selectedCategory)
         .sort((a, b) => {
+            // Primary sort: sold-out items go to the bottom
+            const aSoldOut = isProductFullyBooked(a);
+            const bSoldOut = isProductFullyBooked(b);
+            if (aSoldOut !== bSoldOut) return aSoldOut ? 1 : -1;
+
+            // Secondary sort: user-selected option
             if (sortOption === 'price-asc') return a.price - b.price;
             if (sortOption === 'price-desc') return b.price - a.price;
             if (sortOption === 'name-asc') return a.name.localeCompare(b.name);
@@ -147,7 +169,12 @@ const Storefront: React.FC = () => {
                         {filteredProducts.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10">
                                 {filteredProducts.map(product => (
-                                    <ProductCard key={product.id} product={product} />
+                                    <ProductCard
+                                        key={product.id}
+                                        product={product}
+                                        sessions={getProductSessions(product)}
+                                        isFullyBooked={isProductFullyBooked(product)}
+                                    />
                                 ))}
                             </div>
                         ) : (
