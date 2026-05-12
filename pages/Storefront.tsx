@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Course } from '../types';
-import { getCourses } from '../services/firestoreService';
+import { Product } from '../types';
+import { getProducts } from '../services/firestoreService';
 import { useCart } from '../hooks/useCart';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 import Logo from '../components/common/Logo';
-import CourseBookingCard from '../components/CourseBookingCard';
+import ProductCard from '../components/ProductCard';
 
 const StorefrontHeader: React.FC = () => {
     const { items } = useCart();
@@ -44,33 +44,33 @@ const StorefrontHeader: React.FC = () => {
 }
 
 const Storefront: React.FC = () => {
-    const [courses, setCourses] = useState<Course[]>([]);
+    const [products, setProducts] = useState<Product[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState<string>('All');
     const [sortOption, setSortOption] = useState<string>('name-asc');
 
     useEffect(() => {
-        const fetchCourses = async () => {
+        const fetchProducts = async () => {
             setIsLoading(true);
             try {
-                const allCourses = await getCourses();
-                const visibleCourses = allCourses.filter(course => !course.isHidden);
-                setCourses(visibleCourses);
+                const allProducts = await getProducts();
+                const visibleProducts = allProducts.filter(product => !product.isHidden);
+                setProducts(visibleProducts);
             } catch (error) {
-                console.error("Failed to fetch courses:", error);
+                console.error("Failed to fetch products:", error);
             } finally {
                 setIsLoading(false);
             }
         };
-        fetchCourses();
+        fetchProducts();
     }, []);
 
     // Extract unique categories
-    const categories = ['All', ...Array.from(new Set(courses.map(c => c.category)))].sort();
+    const categories = ['All', ...Array.from(new Set(products.map(c => c.category)))].sort();
 
     // Filter and Sort Logic
-    const filteredCourses = courses
-        .filter(course => selectedCategory === 'All' || course.category === selectedCategory)
+    const filteredProducts = products
+        .filter(product => selectedCategory === 'All' || product.category === selectedCategory)
         .sort((a, b) => {
             if (sortOption === 'price-asc') return a.price - b.price;
             if (sortOption === 'price-desc') return b.price - a.price;
@@ -140,14 +140,14 @@ const Storefront: React.FC = () => {
                 {isLoading ? (
                     <div className="flex flex-col justify-center items-center py-32">
                         <LoadingSpinner />
-                        <p className="mt-4 text-slate-500 animate-pulse">Loading courses...</p>
+                        <p className="mt-4 text-slate-500 animate-pulse">Loading experiences...</p>
                     </div>
                 ) : (
                     <>
-                        {filteredCourses.length > 0 ? (
+                        {filteredProducts.length > 0 ? (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 sm:gap-10">
-                                {filteredCourses.map(course => (
-                                    <CourseBookingCard key={course.id} course={course} />
+                                {filteredProducts.map(product => (
+                                    <ProductCard key={product.id} product={product} />
                                 ))}
                             </div>
                         ) : (
@@ -157,15 +157,15 @@ const Storefront: React.FC = () => {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
                                 </div>
-                                <h3 className="text-2xl font-bold text-slate-800 mb-2">No Courses Found</h3>
+                                <h3 className="text-2xl font-bold text-slate-800 mb-2">No Products Found</h3>
                                 <p className="text-slate-500 max-w-md mx-auto mb-8">
-                                    We couldn't find any courses matching your current filters. Try selecting a different category or clearing your filters.
+                                    We couldn't find any products matching your current filters. Try selecting a different category or clearing your filters.
                                 </p>
                                 <button
                                     onClick={() => { setSelectedCategory('All'); setSortOption('name-asc'); }}
                                     className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-bold shadow-lg hover:bg-indigo-700 hover:shadow-indigo-200 transition-all"
                                 >
-                                    View All Courses
+                                    View All Products
                                 </button>
                             </div>
                         )}

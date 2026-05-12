@@ -1,19 +1,21 @@
 
 import React, { useState, useEffect } from 'react';
-import { Course, Session } from '../../types';
+import { Product, Session } from '../../types';
 import SessionForm from './SessionForm';
 import ConfirmationModal from '../common/ConfirmationModal';
 
 interface SlotManagerProps {
-    courses: Course[];
+    courses: Product[];  // Prop name kept for backward compat; actually Product[]
     sessions: Record<string, Session[]>;
     onSessionSave: (session: Omit<Session, 'id'>) => Promise<void>;
-    onSessionUpdate: (sessionId: string, courseId: string, data: Partial<Session>) => Promise<void>;
-    onSessionDelete: (sessionId: string, courseId: string) => Promise<void>;
+    onSessionUpdate: (sessionId: string, productId: string, data: Partial<Session>) => Promise<void>;
+    onSessionDelete: (sessionId: string, productId: string) => Promise<void>;
 }
 
 const SlotManager: React.FC<SlotManagerProps> = ({ courses, sessions, onSessionSave, onSessionUpdate, onSessionDelete }) => {
-    const [selectedCourseId, setSelectedCourseId] = useState<string | null>(courses[0]?.id || null);
+    // Filter to only session-based products
+    const sessionProducts = courses.filter(p => p.type === 'course' || p.type === 'event_ticket');
+    const [selectedProductId, setSelectedProductId] = useState<string | null>(sessionProducts[0]?.id || null);
     const [isSaving, setIsSaving] = useState(false);
     const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null);
 
@@ -26,12 +28,12 @@ const SlotManager: React.FC<SlotManagerProps> = ({ courses, sessions, onSessionS
 
 
     useEffect(() => {
-        if (courses.length > 0 && !courses.find(c => c.id === selectedCourseId)) {
-            setSelectedCourseId(courses[0].id);
-        } else if (courses.length === 0) {
-            setSelectedCourseId(null);
+        if (sessionProducts.length > 0 && !sessionProducts.find(c => c.id === selectedProductId)) {
+            setSelectedProductId(sessionProducts[0].id);
+        } else if (sessionProducts.length === 0) {
+            setSelectedProductId(null);
         }
-    }, [courses, selectedCourseId]);
+    }, [sessionProducts, selectedProductId]);
 
     const handleEditClick = (session: Session) => {
         setEditingSession(session);
@@ -55,7 +57,7 @@ const SlotManager: React.FC<SlotManagerProps> = ({ courses, sessions, onSessionS
 
         const newRemainingSlots = editingSession.remainingSlots + (editingTotalSlots - editingSession.totalSlots);
 
-        await onSessionUpdate(editingSession.id, editingSession.courseId, {
+        await onSessionUpdate(editingSession.id, editingSession.productId, {
             date: editingDate,
             totalSlots: editingTotalSlots,
             remainingSlots: newRemainingSlots,
@@ -64,8 +66,8 @@ const SlotManager: React.FC<SlotManagerProps> = ({ courses, sessions, onSessionS
         setEditingSession(null);
     };
 
-    const handleDeleteClick = (sessionId: string, courseId: string) => {
-        setSessionToDelete({ sessionId, courseId });
+    const handleDeleteClick = (sessionId: string, productId: string) => {
+        setSessionToDelete({ sessionId, courseId: productId });
         setIsConfirmModalOpen(true);
     };
 
@@ -90,7 +92,7 @@ const SlotManager: React.FC<SlotManagerProps> = ({ courses, sessions, onSessionS
         setIsSaving(false);
     };
 
-    const selectedCourseSessions = selectedCourseId ? sessions[selectedCourseId] || [] : [];
+    const selectedProductSessions = selectedProductId ? sessions[selectedProductId] || [] : [];
 
     return (
         <div className="bg-white p-4 sm:p-6 rounded-xl shadow-md">
@@ -106,36 +108,36 @@ const SlotManager: React.FC<SlotManagerProps> = ({ courses, sessions, onSessionS
                 isConfirming={!!deletingSessionId}
             />
 
-            {courses.length > 0 ? (
+            {sessionProducts.length > 0 ? (
                 <div>
-                    <label htmlFor="course-select" className="block text-sm font-medium text-slate-700 mb-1">Select Course</label>
+                    <label htmlFor="product-select" className="block text-sm font-medium text-slate-700 mb-1">Select Product</label>
                     <select
-                        id="course-select"
-                        value={selectedCourseId || ''}
-                        onChange={(e) => { setSelectedCourseId(e.target.value); handleCancelEdit(); }}
+                        id="product-select"
+                        value={selectedProductId || ''}
+                        onChange={(e) => { setSelectedProductId(e.target.value); handleCancelEdit(); }}
                         className="block w-full max-w-md px-3 py-2 border border-slate-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
                     >
-                        {courses.map(course => (
-                            <option key={course.id} value={course.id}>{course.name}</option>
+                        {sessionProducts.map(p => (
+                            <option key={p.id} value={p.id}>{p.name} ({p.type})</option>
                         ))}
                     </select>
 
-                    {selectedCourseId && (
+                    {selectedProductId && (
                         <div className="mt-6">
                              <div className="border border-slate-200 rounded-lg">
                                 <div className="p-4">
                                      <h3 className="text-lg font-semibold text-slate-700">
-                                        Available Slots for "{courses.find(c => c.id === selectedCourseId)?.name}"
+                                        Available Slots for "{sessionProducts.find(c => c.id === selectedProductId)?.name}"
                                     </h3>
                                 </div>
-                                {selectedCourseSessions.length > 0 ? (
+                                {selectedProductSessions.length > 0 ? (
                                     <ul className="divide-y divide-slate-200">
                                         <li className="hidden sm:grid grid-cols-3 items-center gap-4 px-4 py-2 font-semibold text-sm text-slate-600 bg-slate-50">
                                             <div className="col-span-1">Date</div>
                                             <div className="col-span-1">Slots (Remaining / Total)</div>
                                             <div className="col-span-1 text-right">Actions</div>
                                         </li>
-                                        {selectedCourseSessions.map(session => (
+                                        {selectedProductSessions.map(session => (
                                             <li key={session.id} className="block sm:grid sm:grid-cols-3 items-center gap-4 px-4 py-3">
                                                 <div className="sm:col-span-1 mb-2 sm:mb-0">
                                                     <span className="font-medium text-slate-600 sm:hidden">Date: </span>
@@ -169,7 +171,7 @@ const SlotManager: React.FC<SlotManagerProps> = ({ courses, sessions, onSessionS
                                                     ) : (
                                                         <div className="flex items-center gap-4">
                                                             <button onClick={() => handleEditClick(session)} className="text-indigo-600 hover:text-indigo-800 text-sm font-medium">Edit</button>
-                                                            <button onClick={() => handleDeleteClick(session.id, session.courseId)} className="text-red-600 hover:text-red-800 text-sm font-medium disabled:text-red-400" disabled={deletingSessionId === session.id}>
+                                                            <button onClick={() => handleDeleteClick(session.id, session.productId)} className="text-red-600 hover:text-red-800 text-sm font-medium disabled:text-red-400" disabled={deletingSessionId === session.id}>
                                                                 {deletingSessionId === session.id ? 'Deleting...' : 'Delete'}
                                                             </button>
                                                         </div>
@@ -179,12 +181,12 @@ const SlotManager: React.FC<SlotManagerProps> = ({ courses, sessions, onSessionS
                                         ))}
                                     </ul>
                                 ) : (
-                                    <p className="px-4 pb-4 text-slate-500">No slots have been added for this course yet.</p>
+                                    <p className="px-4 pb-4 text-slate-500">No slots have been added for this product yet.</p>
                                 )}
                             </div>
 
                             <SessionForm 
-                                courseId={selectedCourseId}
+                                courseId={selectedProductId}
                                 onSave={handleSessionSave}
                                 isSaving={isSaving}
                             />
@@ -192,7 +194,7 @@ const SlotManager: React.FC<SlotManagerProps> = ({ courses, sessions, onSessionS
                     )}
                 </div>
             ) : (
-                <p className="text-slate-500">You must add a course before you can manage slots.</p>
+                <p className="text-slate-500">You must add a product before you can manage slots.</p>
             )}
         </div>
     );

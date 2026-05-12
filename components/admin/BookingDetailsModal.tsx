@@ -138,8 +138,8 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ booking, onCl
                             <table className="w-full text-sm text-left">
                                 <thead className="bg-slate-50 text-slate-500 uppercase text-xs">
                                     <tr>
-                                        <th className="px-4 py-3">Course</th>
-                                        <th className="px-4 py-3 text-center">Session</th>
+                                        <th className="px-4 py-3">Item</th>
+                                        <th className="px-4 py-3 text-center">Date</th>
                                         <th className="px-4 py-3 text-right">Price</th>
                                     </tr>
                                 </thead>
@@ -147,10 +147,10 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ booking, onCl
                                     {booking.items.map((item, idx) => (
                                         <tr key={idx}>
                                             <td className="px-4 py-3">
-                                                <div className="font-medium text-slate-900">{item.courseName}</div>
+                                                <div className="font-medium text-slate-900">{item.productName}</div>
                                                 <div className="text-xs text-slate-500">Qty: {item.quantity}</div>
                                             </td>
-                                            <td className="px-4 py-3 text-center text-slate-600">{item.sessionDate}</td>
+                                            <td className="px-4 py-3 text-center text-slate-600">{item.sessionDate || 'N/A'}</td>
                                             <td className="px-4 py-3 text-right font-mono text-slate-900">RM {item.price.toFixed(2)}</td>
                                         </tr>
                                     ))}

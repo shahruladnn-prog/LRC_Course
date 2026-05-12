@@ -1,20 +1,22 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { Course, Session, Category } from '../types';
-import { getCourses, getSessionsForCourse, addCourse, updateCourse, deleteCourse, addSession, updateSession, deleteSession, getCategories, addCategory, updateCategory, deleteCategory } from '../services/firestoreService';
+import { Product, Session, Category } from '../types';
+import { getProducts, getSessionsForProduct, addProduct, updateProduct, deleteProduct, addSession, updateSession, deleteSession, getCategories, addCategory, updateCategory, deleteCategory } from '../services/firestoreService';
 import { auth } from '../services/firebase';
 import { signOut } from 'firebase/auth';
 import { useNavigate } from 'react-router-dom';
 import LoadingSpinner from '../components/common/LoadingSpinner';
-import CourseManager from '../components/admin/CourseManager';
+import ProductManager from '../components/admin/ProductManager';
 import SlotManager from '../components/admin/SlotManager';
 import CategoryManager from '../components/admin/CategoryManager';
 import BookingsManagement from '../components/admin/BookingsManagement';
 import ContentManager from '../components/admin/ContentManager';
 import Logo from '../components/common/Logo';
 import ErrorBoundary from '../components/common/ErrorBoundary';
+import RedemptionScanner from '../components/admin/RedemptionScanner';
+import ReportsView from '../components/admin/ReportsView';
 
-type AdminView = 'courses' | 'slots' | 'categories' | 'bookings' | 'settings';
+type AdminView = 'products' | 'slots' | 'categories' | 'bookings' | 'settings' | 'redemptions' | 'reports';
 
 const NavButton: React.FC<{
     label: string;
@@ -38,24 +40,24 @@ const NavButton: React.FC<{
 );
 
 const AdminDashboard: React.FC = () => {
-    const [courses, setCourses] = useState<Course[]>([]);
+    const [products, setProducts] = useState<Product[]>([]);
     const [sessions, setSessions] = useState<Record<string, Session[]>>({});
     const [categories, setCategories] = useState<Category[]>([]);
     const [isLoading, setIsLoading] = useState(true);
-    const [activeView, setActiveView] = useState<AdminView>('courses');
+    const [activeView, setActiveView] = useState<AdminView>('products');
     const [isSidebarOpen, setIsSidebarOpen] = useState(false);
     const navigate = useNavigate();
 
     const fetchAllData = useCallback(async () => {
         setIsLoading(true);
         try {
-            const [coursesData, categoriesData] = await Promise.all([getCourses(), getCategories()]);
-            setCourses(coursesData);
+            const [productsData, categoriesData] = await Promise.all([getProducts(), getCategories()]);
+            setProducts(productsData);
             setCategories(categoriesData);
 
             const sessionsData: Record<string, Session[]> = {};
-            for (const course of coursesData) {
-                sessionsData[course.id] = await getSessionsForCourse(course.id);
+            for (const product of productsData) {
+                sessionsData[product.id] = await getSessionsForProduct(product.id);
             }
             setSessions(sessionsData);
         } catch (error) {
@@ -76,39 +78,39 @@ const AdminDashboard: React.FC = () => {
 
     const handleViewChange = (view: AdminView) => {
         setActiveView(view);
-        setIsSidebarOpen(false); // Close sidebar on navigation
+        setIsSidebarOpen(false);
     }
 
-    const handleCourseSave = async (course: Omit<Course, 'id'> | Course) => {
-        if ('id' in course) {
-            await updateCourse(course.id, course);
+    const handleProductSave = async (product: Omit<Product, 'id'> | Product) => {
+        if ('id' in product) {
+            await updateProduct(product.id, product);
         } else {
-            await addCourse(course);
+            await addProduct(product);
         }
         await fetchAllData();
     };
 
-    const handleCourseDelete = async (courseId: string) => {
-        await deleteCourse(courseId);
+    const handleProductDelete = async (productId: string) => {
+        await deleteProduct(productId);
         await fetchAllData();
     };
 
     const handleSessionSave = async (session: Omit<Session, 'id'>) => {
         await addSession(session);
-        const updatedSessions = await getSessionsForCourse(session.courseId);
-        setSessions(prev => ({ ...prev, [session.courseId]: updatedSessions }));
+        const updatedSessions = await getSessionsForProduct(session.productId);
+        setSessions(prev => ({ ...prev, [session.productId]: updatedSessions }));
     };
 
-    const handleSessionUpdate = async (sessionId: string, courseId: string, sessionData: Partial<Session>) => {
+    const handleSessionUpdate = async (sessionId: string, productId: string, sessionData: Partial<Session>) => {
         await updateSession(sessionId, sessionData);
-        const updatedSessions = await getSessionsForCourse(courseId);
-        setSessions(prev => ({ ...prev, [courseId]: updatedSessions }));
+        const updatedSessions = await getSessionsForProduct(productId);
+        setSessions(prev => ({ ...prev, [productId]: updatedSessions }));
     };
 
-    const handleSessionDelete = async (sessionId: string, courseId: string) => {
+    const handleSessionDelete = async (sessionId: string, productId: string) => {
         await deleteSession(sessionId);
-        const updatedSessions = await getSessionsForCourse(courseId);
-        setSessions(prev => ({ ...prev, [courseId]: updatedSessions }));
+        const updatedSessions = await getSessionsForProduct(productId);
+        setSessions(prev => ({ ...prev, [productId]: updatedSessions }));
     };
 
     const handleCategoryAdd = async (category: Omit<Category, 'id'>) => {
@@ -143,7 +145,7 @@ const AdminDashboard: React.FC = () => {
                 </div>
                 <nav className="p-2 flex-grow">
                     <ul className="space-y-1">
-                        <NavButton label="Courses" view="courses" activeView={activeView} onClick={() => handleViewChange('courses')}>
+                        <NavButton label="Products" view="products" activeView={activeView} onClick={() => handleViewChange('products')}>
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6.253v11.494m-9-5.747h18" /></svg>
                         </NavButton>
                         <NavButton label="Slots" view="slots" activeView={activeView} onClick={() => handleViewChange('slots')}>
@@ -154,6 +156,12 @@ const AdminDashboard: React.FC = () => {
                         </NavButton>
                         <NavButton label="Bookings" view="bookings" activeView={activeView} onClick={() => handleViewChange('bookings')}>
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" /></svg>
+                        </NavButton>
+                        <NavButton label="Redemptions" view="redemptions" activeView={activeView} onClick={() => handleViewChange('redemptions')}>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" /></svg>
+                        </NavButton>
+                        <NavButton label="Reports" view="reports" activeView={activeView} onClick={() => handleViewChange('reports')}>
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
                         </NavButton>
                         <NavButton label="Settings" view="settings" activeView={activeView} onClick={() => handleViewChange('settings')}>
                             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
@@ -178,17 +186,17 @@ const AdminDashboard: React.FC = () => {
                         <div className="flex justify-center items-center h-full"><LoadingSpinner /></div>
                     ) : (
                         <>
-                            {activeView === 'courses' && (
-                                <CourseManager
-                                    courses={courses}
+                            {activeView === 'products' && (
+                                <ProductManager
+                                    products={products}
                                     categories={categories}
-                                    onCourseSave={handleCourseSave}
-                                    onCourseDelete={handleCourseDelete}
+                                    onProductSave={handleProductSave}
+                                    onProductDelete={handleProductDelete}
                                 />
                             )}
                             {activeView === 'slots' && (
                                 <SlotManager
-                                    courses={courses}
+                                    courses={products}
                                     sessions={sessions}
                                     onSessionSave={handleSessionSave}
                                     onSessionUpdate={handleSessionUpdate}
@@ -206,6 +214,16 @@ const AdminDashboard: React.FC = () => {
                             {activeView === 'bookings' && (
                                 <ErrorBoundary>
                                     <BookingsManagement />
+                                </ErrorBoundary>
+                            )}
+                            {activeView === 'redemptions' && (
+                                <ErrorBoundary>
+                                    <RedemptionScanner />
+                                </ErrorBoundary>
+                            )}
+                            {activeView === 'reports' && (
+                                <ErrorBoundary>
+                                    <ReportsView />
                                 </ErrorBoundary>
                             )}
                             {activeView === 'settings' && <ContentManager />}

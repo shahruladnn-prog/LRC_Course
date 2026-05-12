@@ -3,7 +3,7 @@ import React, { useState, FormEvent } from 'react';
 import { Session } from '../../types';
 
 interface SessionFormProps {
-  courseId: string;
+  courseId: string;  // Prop name kept for backward compat; holds productId
   onSave: (session: Omit<Session, 'id'>) => void;
   isSaving: boolean;
 }
@@ -18,7 +18,7 @@ const SessionForm: React.FC<SessionFormProps> = ({ courseId, onSave, isSaving })
         alert("Please provide a valid date and number of slots.");
         return;
     }
-    onSave({ courseId, date, totalSlots, remainingSlots: totalSlots });
+    onSave({ productId: courseId, date, totalSlots, remainingSlots: totalSlots });
     setDate('');
     setTotalSlots(10);
   };

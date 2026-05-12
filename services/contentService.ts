@@ -14,27 +14,27 @@ export interface SiteContent {
 const CONTENT_DOC_ID = 'site_settings';
 
 export const getContent = async (): Promise<SiteContent> => {
+    const defaults: SiteContent = {
+        privacyPolicy: "## Privacy Policy\n\nAdd your privacy policy here...",
+        termsAndConditions: "## Terms and Conditions\n\nAdd your terms here...",
+        contactInfo: {
+            address: "Putrajaya Lake Recreation Centre",
+            phone: "+60 3-8888 8888",
+            email: "info@lrc.my"
+        }
+    };
+
     try {
         const docRef = doc(db, 'settings', CONTENT_DOC_ID);
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
             return docSnap.data() as SiteContent;
-        } else {
-            // Return defaults if not set
-            return {
-                privacyPolicy: "## Privacy Policy\n\nAdd your privacy policy here...",
-                termsAndConditions: "## Terms and Conditions\n\nAdd your terms here...",
-                contactInfo: {
-                    address: "Putrajaya Lake Recreation Centre",
-                    phone: "+60 3-8888 8888",
-                    email: "info@lrc.my"
-                }
-            };
         }
+        return defaults;
     } catch (error) {
-        console.error("Error fetching content:", error);
-        throw error;
+        console.error("Error fetching content (using defaults):", error);
+        return defaults;
     }
 };
 
@@ -43,7 +43,7 @@ export const updateContent = async (content: SiteContent): Promise<void> => {
         const docRef = doc(db, 'settings', CONTENT_DOC_ID);
         await setDoc(docRef, content, { merge: true });
     } catch (error) {
-        console.error("Error updating content:", error);
+        console.error("Error updating content (permissions may be missing):", error);
         throw error;
     }
 };

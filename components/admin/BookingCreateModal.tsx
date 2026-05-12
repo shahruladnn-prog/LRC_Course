@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Course, Session, BookingItem } from '../../types';
-import { getCourses, getSessionsForCourse, addBooking } from '../../services/firestoreService';
+import { Product, Session, BookingItem } from '../../types';
+import { getProducts, getSessionsForProduct, addBooking } from '../../services/firestoreService';
 import LoadingSpinner from '../common/LoadingSpinner';
 
 interface BookingCreateModalProps {
@@ -10,10 +10,10 @@ interface BookingCreateModalProps {
 }
 
 const BookingCreateModal: React.FC<BookingCreateModalProps> = ({ isOpen, onClose, onSuccess }) => {
-    const [courses, setCourses] = useState<Course[]>([]);
+    const [products, setProducts] = useState<Product[]>([]);
     const [sessions, setSessions] = useState<Session[]>([]);
 
-    const [selectedCourseId, setSelectedCourseId] = useState('');
+    const [selectedProductId, setSelectedProductId] = useState('');
     const [selectedSessionId, setSelectedSessionId] = useState('');
     const [quantity, setQuantity] = useState(1);
     const [customerFullName, setCustomerFullName] = useState('');
@@ -24,26 +24,26 @@ const BookingCreateModal: React.FC<BookingCreateModalProps> = ({ isOpen, onClose
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const fetchCourses = async () => {
-            const data = await getCourses();
-            setCourses(data.filter(c => !c.isHidden));
+        const fetchProducts = async () => {
+            const data = await getProducts();
+            setProducts(data.filter(c => !c.isHidden));
         };
-        fetchCourses();
+        fetchProducts();
     }, []);
 
     useEffect(() => {
-        if (!selectedCourseId) {
+        if (!selectedProductId) {
             setSessions([]);
             return;
         }
         const fetchSessions = async () => {
             setIsLoadingSessions(true);
-            const data = await getSessionsForCourse(selectedCourseId);
+            const data = await getSessionsForProduct(selectedProductId);
             setSessions(data.filter(s => s.remainingSlots > 0));
             setIsLoadingSessions(false);
         };
         fetchSessions();
-    }, [selectedCourseId]);
+    }, [selectedProductId]);
 
     if (!isOpen) return null;
 
@@ -53,18 +53,19 @@ const BookingCreateModal: React.FC<BookingCreateModalProps> = ({ isOpen, onClose
         setIsLoading(true);
 
         try {
-            const course = courses.find(c => c.id === selectedCourseId);
+            const product = products.find(c => c.id === selectedProductId);
             const session = sessions.find(s => s.id === selectedSessionId);
 
-            if (!course || !session) throw new Error("Please select course and session.");
+            if (!product || !session) throw new Error("Please select product and session.");
 
             const bookingItem: BookingItem = {
-                courseId: course.id,
-                courseName: course.name,
+                productId: product.id,
+                productName: product.name,
+                productType: product.type,
                 sessionId: session.id,
                 sessionDate: session.date,
-                price: course.price,
-                category: course.category,
+                price: product.price,
+                category: product.category,
                 quantity: quantity
             };
 
@@ -96,15 +97,15 @@ const BookingCreateModal: React.FC<BookingCreateModalProps> = ({ isOpen, onClose
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                     <div>
-                        <label className="block text-sm font-medium text-slate-700">Course</label>
+                        <label className="block text-sm font-medium text-slate-700">Product</label>
                         <select
-                            value={selectedCourseId}
-                            onChange={e => setSelectedCourseId(e.target.value)}
+                            value={selectedProductId}
+                            onChange={e => setSelectedProductId(e.target.value)}
                             className="mt-1 block w-full border border-slate-300 rounded-md p-2"
                             required
                         >
-                            <option value="">Select Course</option>
-                            {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                            <option value="">Select Product</option>
+                            {products.map(c => <option key={c.id} value={c.id}>{c.name} ({c.type})</option>)}
                         </select>
                     </div>
 
@@ -116,7 +117,7 @@ const BookingCreateModal: React.FC<BookingCreateModalProps> = ({ isOpen, onClose
                                 onChange={e => setSelectedSessionId(e.target.value)}
                                 className="mt-1 block w-full border border-slate-300 rounded-md p-2"
                                 required
-                                disabled={!selectedCourseId}
+                                disabled={!selectedProductId}
                             >
                                 <option value="">Select Session</option>
                                 {sessions.map(s => <option key={s.id} value={s.id}>{s.date} ({s.remainingSlots} slots)</option>)}

@@ -55,7 +55,7 @@ const OrderConfirmationPage: React.FC = () => {
                      <h2 className="font-semibold mb-4 text-lg">Order Details</h2>
                     {booking.items.map((item, i) => (
                         <div key={i} className="flex justify-between py-2 border-b">
-                            <span>{item.courseName} (x{item.quantity})</span>
+                            <span>{item.productName} (x{item.quantity})</span>
                             <span>RM{(item.price * item.quantity).toFixed(2)}</span>
                         </div>
                     ))}

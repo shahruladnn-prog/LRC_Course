@@ -51,13 +51,15 @@ const CartPage: React.FC = () => {
         setIsProcessing(true);
 
         const bookingItems: BookingItem[] = items.map(item => ({
-            courseId: item.courseId,
-            courseName: item.courseName,
+            productId: item.productId,
+            productName: item.productName,
+            productType: item.productType,
             sessionId: item.sessionId,
             sessionDate: item.sessionDate,
             price: item.price,
             category: item.category,
             quantity: item.quantity,
+            addOns: item.addOns,
         }));
 
         try {
@@ -111,9 +113,9 @@ const CartPage: React.FC = () => {
                 {items.length === 0 ? (
                     <div className="text-center bg-white p-12 rounded-xl shadow-md">
                         <h2 className="text-2xl font-bold text-slate-800">Your cart is empty</h2>
-                        <p className="text-slate-500 mt-2 mb-6">Looks like you haven't added any courses yet.</p>
+                        <p className="text-slate-500 mt-2 mb-6">Looks like you haven't added any items yet.</p>
                         <Link to="/" className="bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700 transition-transform hover:scale-105 inline-block">
-                            Browse Courses
+                            Browse Products
                         </Link>
                     </div>
                 ) : (
@@ -124,8 +126,17 @@ const CartPage: React.FC = () => {
                                 {items.map(item => (
                                     <li key={item.cartId} className="py-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                                         <div className="flex-grow w-full">
-                                            <p className="font-semibold text-slate-800">{item.courseName}</p>
-                                            <p className="text-sm text-slate-500">Date: {item.sessionDate}</p>
+                                            <p className="font-semibold text-slate-800">{item.productName}</p>
+                                            {item.sessionDate && <p className="text-sm text-slate-500">Date: {item.sessionDate}</p>}
+                                            {item.addOns && item.addOns.length > 0 && (
+                                                <div className="mt-1 space-y-0.5">
+                                                    {item.addOns.map((a, idx) => (
+                                                        <p key={idx} className="text-xs text-indigo-600 ml-1">
+                                                            ↳ {a.name} ({a.variant}) +RM{a.price.toFixed(2)}
+                                                        </p>
+                                                    ))}
+                                                </div>
+                                            )}
                                             <div className="flex items-center gap-2 mt-2">
                                                 <label htmlFor={`qty-${item.cartId}`} className="text-sm font-medium text-slate-600">Qty:</label>
                                                 <input
@@ -139,7 +150,7 @@ const CartPage: React.FC = () => {
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-4 mt-2 sm:mt-0 self-end sm:self-center">
-                                            {isWithin7Days(item.sessionDate) && (
+                                            {item.sessionDate && isWithin7Days(item.sessionDate) && (
                                                 <span className="text-xs font-semibold bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">Upcoming</span>
                                             )}
                                             <div className="text-right">

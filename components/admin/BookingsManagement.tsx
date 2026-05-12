@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { getBookings, getCourses, getCategories } from '../../services/firestoreService';
-import { Booking, Course, Category } from '../../types';
+import { getBookings, getProducts, getCategories } from '../../services/firestoreService';
+import { Booking, Product, Category } from '../../types';
 import LoadingSpinner from '../common/LoadingSpinner';
 import { functions, db } from '../../services/firebase';
 import { httpsCallable } from 'firebase/functions';
@@ -11,13 +11,13 @@ import BookingDetailsModal from './BookingDetailsModal';
 
 const BookingsManagement: React.FC = () => {
     const [bookings, setBookings] = useState<Booking[]>([]);
-    const [courses, setCourses] = useState<Course[]>([]);
+    const [products, setProducts] = useState<Product[]>([]);
     const [categories, setCategories] = useState<Category[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [syncingId, setSyncingId] = useState<string | null>(null);
 
     // Filters & Sorting
-    const [filterCourse, setFilterCourse] = useState<string>('all');
+    const [filterProduct, setFilterProduct] = useState<string>('all');
     const [filterCategory, setFilterCategory] = useState<string>('all');
     const [sortOrder, setSortOrder] = useState<'newest' | 'oldest'>('newest');
 
@@ -33,13 +33,13 @@ const BookingsManagement: React.FC = () => {
     const fetchData = async () => {
         setIsLoading(true);
         try {
-            const [bookingsData, coursesData, categoriesData] = await Promise.all([
+            const [bookingsData, productsData, categoriesData] = await Promise.all([
                 getBookings(),
-                getCourses(),
+                getProducts(),
                 getCategories()
             ]);
             setBookings(bookingsData);
-            setCourses(coursesData);
+            setProducts(productsData);
             setCategories(categoriesData);
         } catch (error) {
             console.error("Failed to fetch booking data:", error);
@@ -57,9 +57,9 @@ const BookingsManagement: React.FC = () => {
         let result = bookings.filter(booking => {
             // SAFEGUARD: Ensure items exists
             const items = booking.items || [];
-            const courseMatch = filterCourse === 'all' || items.some(item => item.courseId === filterCourse);
+            const productMatch = filterProduct === 'all' || items.some(item => item.productId === filterProduct);
             const categoryMatch = filterCategory === 'all' || items.some(item => item.category === filterCategory);
-            return courseMatch && categoryMatch;
+            return productMatch && categoryMatch;
         });
 
         return result.sort((a, b) => {
@@ -73,7 +73,7 @@ const BookingsManagement: React.FC = () => {
             const dateB = getDate(b.bookingDate);
             return sortOrder === 'newest' ? dateB - dateA : dateA - dateB;
         });
-    }, [bookings, filterCourse, filterCategory, sortOrder]);
+    }, [bookings, filterProduct, filterCategory, sortOrder]);
 
     // Pagination Logic
     const totalPages = Math.ceil(filteredAndSortedBookings.length / itemsPerPage);
@@ -85,7 +85,7 @@ const BookingsManagement: React.FC = () => {
     // Reset page on filter change
     useEffect(() => {
         setCurrentPage(1);
-    }, [filterCourse, filterCategory, sortOrder, itemsPerPage]);
+    }, [filterProduct, filterCategory, sortOrder, itemsPerPage]);
 
     const handleManualSync = async (bookingId: string) => {
         setSyncingId(bookingId);
@@ -134,7 +134,7 @@ const BookingsManagement: React.FC = () => {
             formatDate(b.bookingDate),
             b.paymentStatus || "unknown",
             (b.totalAmount || 0).toFixed(2),
-            (b.items || []).map(i => `${i.courseName} (${i.quantity})`).join("; ")
+            (b.items || []).map(i => `${i.productName} (${i.quantity})`).join("; ")
         ]);
 
         const csvContent = "data:text/csv;charset=utf-8,"
@@ -181,9 +181,9 @@ const BookingsManagement: React.FC = () => {
 
             {/* Filters */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6 p-4 bg-slate-50 rounded-xl border border-slate-200">
-                <select value={filterCourse} onChange={e => setFilterCourse(e.target.value)} className="w-full text-sm border-slate-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
-                    <option value="all">All Courses</option>
-                    {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                <select value={filterProduct} onChange={e => setFilterProduct(e.target.value)} className="w-full text-sm border-slate-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
+                    <option value="all">All Products</option>
+                    {products.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
                 <select value={filterCategory} onChange={e => setFilterCategory(e.target.value)} className="w-full text-sm border-slate-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500">
                     <option value="all">All Categories</option>

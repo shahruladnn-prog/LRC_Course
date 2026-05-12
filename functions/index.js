@@ -67,8 +67,8 @@ async function syncBookingToLoyverse(bookingData, bookingRef) {
     const lineItems = [];
     if (bookingData.items) {
       for (const item of bookingData.items) {
-        const courseDoc = await db.collection("courses").doc(item.courseId).get();
-        const sku = courseDoc.data()?.sku;
+        const productDoc = await db.collection("products").doc(item.productId).get();
+        const sku = productDoc.data()?.sku;
         if (sku) {
           try {
             const vRes = await loyverseApi.get(`/variants?sku=${sku}`);
@@ -84,7 +84,25 @@ async function syncBookingToLoyverse(bookingData, bookingRef) {
             console.warn(`Failed to fetch variant for SKU ${sku}:`, skuErr.message);
           }
         } else {
-          console.warn(`Course ${item.courseId} in Firebase has no SKU field.`);
+          console.warn(`Product ${item.productId} in Firebase has no SKU field.`);
+        }
+        
+        // Add-on line items (t-shirts by size)
+        if (item.addOns) {
+          for (const addon of item.addOns) {
+            const addonSku = `${addon.addOnId.toUpperCase()}-${addon.variant.toUpperCase()}`; // e.g., TSHIRT-XL
+            try {
+              const vRes = await loyverseApi.get(`/variants?sku=${addonSku}`);
+              const variantId = vRes.data.variants?.[0]?.variant_id;
+              if (variantId) {
+                lineItems.push({ variant_id: variantId, quantity: 1, price: addon.price });
+              } else {
+                console.warn(`Add-on SKU ${addonSku} found but no variant ID`);
+              }
+            } catch (skuErr) {
+              console.warn(`Failed to fetch variant for add-on SKU ${addonSku}:`, skuErr.message);
+            }
+          }
         }
       }
     }
@@ -206,6 +224,57 @@ async function processSuccessfulPayment(billcode, amount, bookingIdFromWebhook) 
       console.error("Transaction Error:", e);
       throw e; // Rethrow real errors
     }
+  }
+
+  // 5.5 GENERATE REDEMPTION CODES (Idempotent — check existing first)
+  try {
+    const existingRedemptions = await db.collection('redemptions')
+        .where('bookingId', '==', bookingRef.id).get();
+    
+    if (existingRedemptions.empty) {
+      const redemptionBatch = db.batch();
+      const items = bookingData.items || [];
+      
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        // Ticket redemption
+        const ticketCode = `${bookingRef.id}-${i}`;
+        const ticketRef = db.collection('redemptions').doc(ticketCode);
+        redemptionBatch.set(ticketRef, {
+          bookingId: bookingRef.id,
+          itemIndex: i,
+          itemType: 'ticket',
+          code: ticketCode,
+          status: 'pending',
+          customerName: bookingData.customerFullName,
+          itemName: item.productName || item.courseName || 'Item',
+        });
+        
+        // Add-on (merchandise) redemptions
+        if (item.addOns) {
+          for (let j = 0; j < item.addOns.length; j++) {
+            const merchCode = `${bookingRef.id}-${i}-addon-${j}`;
+            const merchRef = db.collection('redemptions').doc(merchCode);
+            redemptionBatch.set(merchRef, {
+              bookingId: bookingRef.id,
+              itemIndex: i,
+              addOnIndex: j,
+              itemType: 'merchandise',
+              code: merchCode,
+              status: 'pending',
+              customerName: bookingData.customerFullName,
+              itemName: `${item.addOns[j].name} (${item.addOns[j].variant})`,
+            });
+          }
+        }
+      }
+      await redemptionBatch.commit();
+      console.log(`Redemption codes generated for booking ${bookingRef.id}`);
+    } else {
+      console.log(`Redemptions already exist for booking ${bookingRef.id}. Skipping.`);
+    }
+  } catch (redemptionErr) {
+    console.error("Redemption generation error (non-fatal):", redemptionErr.message);
   }
 
   // 6. LOYVERSE SYNC REMOVED (Manual only)
