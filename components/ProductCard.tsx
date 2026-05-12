@@ -298,14 +298,12 @@ const ProductCard: React.FC<ProductCardProps> = ({ product }) => {
             </div>
 
             {/* Terms & Conditions Modal */}
-            {isTermsModalOpen && (
-                <TermsModal
-                    title={product.name}
-                    terms={product.termsAndConditions}
-                    onAgree={handleAgreeAndAddToCart}
-                    onCancel={() => setIsTermsModalOpen(false)}
-                />
-            )}
+            <TermsModal
+                isOpen={isTermsModalOpen}
+                terms={product.termsAndConditions}
+                onAgree={handleAgreeAndAddToCart}
+                onClose={() => setIsTermsModalOpen(false)}
+            />
         </>
     );
 };
