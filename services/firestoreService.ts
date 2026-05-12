@@ -251,21 +251,43 @@ export const deleteProduct = async (productId: string) => {
 
 // Session Functions
 export const getSessionsForCourse = async (courseId: string): Promise<Session[]> => {
-    // Query by legacy courseId first (existing data)
+    const results: Session[] = [];
+
+    // Query by legacy courseId first (existing data) — NO converter to avoid type conflicts
     try {
-        const q2 = query(collection(db, 'sessions'), where('courseId', '==', courseId)).withConverter(sessionConverter);
+        const q2 = query(collection(db, 'sessions'), where('courseId', '==', courseId));
         const snapshot2 = await getDocs(q2);
-        if (!snapshot2.empty) return snapshot2.docs.map(doc => doc.data());
-    } catch (_) { /* may not have permission or no data */ }
+        snapshot2.forEach(doc => {
+            const d = doc.data();
+            results.push({
+                id: doc.id,
+                productId: d.productId || d.courseId || '',
+                date: d.date || '',
+                totalSlots: d.totalSlots || 0,
+                remainingSlots: d.remainingSlots || 0,
+            });
+        });
+    } catch (_) { /* may not have permission */ }
 
-    // Try productId
-    try {
-        const q = query(collection(db, 'sessions'), where('productId', '==', courseId)).withConverter(sessionConverter);
-        const sessionSnapshot = await getDocs(q);
-        if (!sessionSnapshot.empty) return sessionSnapshot.docs.map(doc => doc.data());
-    } catch (_) { /* fallback failed too */ }
+    // Also try productId if courseId query returned nothing
+    if (results.length === 0) {
+        try {
+            const q = query(collection(db, 'sessions'), where('productId', '==', courseId));
+            const snapshot = await getDocs(q);
+            snapshot.forEach(doc => {
+                const d = doc.data();
+                results.push({
+                    id: doc.id,
+                    productId: d.productId || d.courseId || '',
+                    date: d.date || '',
+                    totalSlots: d.totalSlots || 0,
+                    remainingSlots: d.remainingSlots || 0,
+                });
+            });
+        } catch (_) { /* fallback failed too */ }
+    }
 
-    return [];
+    return results;
 };
 
 export const getSessionsForProduct = getSessionsForCourse; // Alias — same function, cleaner name
