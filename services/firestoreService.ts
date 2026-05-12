@@ -18,6 +18,7 @@ const productConverter = {
             addOns: product.addOns || [],
             eventDate: product.eventDate || '',
             images: product.images || [],
+            showRemainingSlots: product.showRemainingSlots !== undefined ? product.showRemainingSlots : true,
         };
     },
     fromFirestore(
@@ -39,6 +40,7 @@ const productConverter = {
             addOns: data.addOns || [],
             eventDate: data.eventDate || '',
             images: Array.isArray(data.images) ? data.images : [],
+            showRemainingSlots: data.showRemainingSlots !== undefined ? data.showRemainingSlots : true,
         };
     },
 };
@@ -229,6 +231,7 @@ export const addProduct = async (productData: Omit<Product, 'id'>) => {
         addOns: productData.addOns ?? [],
         eventDate: productData.eventDate || '',
         images: productData.images || [],
+        showRemainingSlots: productData.showRemainingSlots !== undefined ? productData.showRemainingSlots : true,
     });
 };
 

@@ -142,7 +142,9 @@ const CartPage: React.FC = () => {
                                                 <div className="mt-1 space-y-0.5">
                                                     {item.addOns.map((a, idx) => (
                                                         <p key={idx} className="text-xs text-indigo-600 ml-1">
-                                                            ↳ {a.name} ({a.variant}) +RM{a.price.toFixed(2)}
+                                                            ↳ {a.name}{a.variant ? ` (${a.variant})` : ''}
+                                                            {(a.quantity || 1) > 1 ? ` ×${a.quantity || 1}` : ''}
+                                                            {' '}+RM{(a.price * (a.quantity || 1)).toFixed(2)}
                                                         </p>
                                                     ))}
                                                 </div>

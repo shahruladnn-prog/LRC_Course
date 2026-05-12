@@ -93,6 +93,9 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, sessions, isFullyBoo
                 {needsSession && !isFullyBooked && nextAvailable && (
                     <p className="text-xs text-slate-400 mt-auto mb-3">
                         📅 Next: {nextAvailable.date}
+                        {product.showRemainingSlots !== false && (
+                            <span className="text-emerald-600 ml-1">({nextAvailable.remainingSlots} slots left)</span>
+                        )}
                     </p>
                 )}
 

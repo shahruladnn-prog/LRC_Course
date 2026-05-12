@@ -23,9 +23,9 @@ const ProductDetailPage: React.FC = () => {
 
     // Quantity & add-on state
     const [quantity, setQuantity] = useState(1);
-    const [addTshirt, setAddTshirt] = useState(false);
-    const [tshirtSize, setTshirtSize] = useState('');
+    const [selectedAddOns, setSelectedAddOns] = useState<Record<string, { selected: boolean; variant: string; quantity: number }>>({});
     const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
+    const [showPostAddModal, setShowPostAddModal] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
 
     // Fetch product
@@ -65,9 +65,9 @@ const ProductDetailPage: React.FC = () => {
 
     // Reset add-on and quantity when product/session changes
     useEffect(() => {
-        setAddTshirt(false);
-        setTshirtSize('');
+        setSelectedAddOns({});
         setQuantity(1);
+        setShowPostAddModal(false);
         setCurrentImageIndex(0);
     }, [product?.id, selectedSessionId]);
 
@@ -79,8 +79,24 @@ const ProductDetailPage: React.FC = () => {
     const isItemInCart = items.some(item => item.cartId === cartId);
 
     const hasAddOns = product?.hasAddOns && product?.addOns && product.addOns.length > 0;
-    const tshirtAddOn = hasAddOns ? product!.addOns![0] : null;
-    const effectivePrice = (product?.price || 0) + (addTshirt && tshirtAddOn ? tshirtAddOn.price : 0);
+    const allAddOns = hasAddOns ? product!.addOns! : [];
+
+    // Calculate total add-on price from all selected add-ons
+    const addOnsTotal = allAddOns.reduce((sum, addOn) => {
+        const sel = selectedAddOns[addOn.id];
+        if (sel?.selected) {
+            return sum + (addOn.price * (sel.quantity || 1));
+        }
+        return sum;
+    }, 0);
+    const effectivePrice = (product?.price || 0) + addOnsTotal;
+
+    // Check if at least one add-on variant is selected (when add-on requires variant)
+    const addOnHasMissingVariant = allAddOns.some(addOn => {
+        const sel = selectedAddOns[addOn.id];
+        if (!sel?.selected) return false;
+        return addOn.variants.length > 0 && !sel.variant;
+    });
 
     // Available slots accounting for existing cart
     const existingCartItem = selectedSessionId ? items.find(item => item.cartId === cartId) : undefined;
@@ -94,13 +110,17 @@ const ProductDetailPage: React.FC = () => {
     const handleAgreeAndAddToCart = () => {
         if (!product) return;
         const addOns: CartAddOn[] = [];
-        if (addTshirt && tshirtSize && tshirtAddOn) {
-            addOns.push({
-                addOnId: tshirtAddOn.id,
-                name: tshirtAddOn.name,
-                variant: tshirtSize,
-                price: tshirtAddOn.price,
-            });
+        for (const addOn of allAddOns) {
+            const sel = selectedAddOns[addOn.id];
+            if (sel?.selected) {
+                addOns.push({
+                    addOnId: addOn.id,
+                    name: addOn.name,
+                    variant: sel.variant || '',
+                    price: addOn.price,
+                    quantity: sel.quantity || 1,
+                });
+            }
         }
 
         const cartItem: CartItem = {
@@ -117,6 +137,7 @@ const ProductDetailPage: React.FC = () => {
         };
         addItem(cartItem);
         setIsTermsModalOpen(false);
+        setShowPostAddModal(true);
     };
 
     // Loading state
@@ -275,11 +296,17 @@ const ProductDetailPage: React.FC = () => {
                                         value={selectedSessionId || ""}
                                     >
                                         {sessions.length === 0 ? <option disabled>No dates available</option> : null}
-                                        {sessions.map(session => (
-                                            <option key={session.id} value={session.id} disabled={session.remainingSlots <= 0}>
-                                                {session.date} {session.remainingSlots <= 0 ? '(Full)' : `(${session.remainingSlots} slots)`}
-                                            </option>
-                                        ))}
+                                        {sessions.map(session => {
+                                            const showSlots = product.showRemainingSlots !== false;
+                                            const slotsText = session.remainingSlots <= 0
+                                                ? '(Full)'
+                                                : showSlots ? `(${session.remainingSlots} slots)` : '';
+                                            return (
+                                                <option key={session.id} value={session.id} disabled={session.remainingSlots <= 0}>
+                                                    {session.date} {slotsText}
+                                                </option>
+                                            );
+                                        })}
                                     </select>
                                 )}
                             </div>
@@ -308,7 +335,7 @@ const ProductDetailPage: React.FC = () => {
                                         className="w-12 h-12 rounded-xl bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center font-bold text-lg transition"
                                     >+</button>
                                 </div>
-                                {needsSession && selectedSession && (
+                                {needsSession && selectedSession && product.showRemainingSlots !== false && (
                                     <p className={`text-xs font-medium text-center ${availableSlotsForBooking > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
                                         {availableSlotsForBooking > 0 ? `${availableSlotsForBooking} slots available` : 'Session Full'}
                                     </p>
@@ -316,52 +343,98 @@ const ProductDetailPage: React.FC = () => {
                             </div>
                         )}
 
-                        {/* Add-on Section */}
-                        {hasAddOns && tshirtAddOn && (!needsSession || selectedSession) && (
-                            <div className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
-                                <label className="flex items-center gap-3 cursor-pointer">
-                                    <input
-                                        type="checkbox"
-                                        checked={addTshirt}
-                                        onChange={(e) => {
-                                            setAddTshirt(e.target.checked);
-                                            if (e.target.checked && !tshirtSize && tshirtAddOn.variants.length > 0) {
-                                                setTshirtSize(tshirtAddOn.variants[0]);
-                                            }
-                                        }}
-                                        className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded"
-                                    />
-                                    <span className="text-sm font-medium text-slate-700">
-                                        Add {tshirtAddOn.name} <span className="text-indigo-600 font-bold">+RM{tshirtAddOn.price.toFixed(0)}</span>
-                                    </span>
-                                </label>
-                                {addTshirt && (
-                                    <div className="ml-8">
-                                        <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">
-                                            {tshirtAddOn.variantField}
-                                        </label>
-                                        <div className="flex flex-wrap gap-2">
-                                            {tshirtAddOn.variants.map(v => (
-                                                <button
-                                                    key={v}
-                                                    type="button"
-                                                    onClick={() => setTshirtSize(v)}
-                                                    className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-all ${tshirtSize === v
-                                                            ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                                                            : 'bg-white text-slate-600 border-slate-300 hover:border-indigo-400'
-                                                        }`}
-                                                >
-                                                    {v}
-                                                </button>
-                                            ))}
+                        {/* Add-on Section — Dynamic Multi-Add-On */ }
+                        {hasAddOns && (!needsSession || selectedSession) && (
+                            <div className="space-y-3">
+                                {allAddOns.map((addOn) => {
+                                    const sel = selectedAddOns[addOn.id];
+                                    const isSelected = sel?.selected || false;
+                                    const selVariant = sel?.variant || '';
+                                    const selQty = sel?.quantity || 1;
+
+                                    return (
+                                        <div key={addOn.id} className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
+                                            {/* Checkbox header */}
+                                            <label className="flex items-center gap-3 cursor-pointer">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={isSelected}
+                                                    onChange={(e) => {
+                                                        const checked = e.target.checked;
+                                                        setSelectedAddOns(prev => ({
+                                                            ...prev,
+                                                            [addOn.id]: {
+                                                                selected: checked,
+                                                                variant: checked && addOn.variants.length > 0 ? addOn.variants[0] : '',
+                                                                quantity: 1,
+                                                            },
+                                                        }));
+                                                    }}
+                                                    className="h-5 w-5 text-indigo-600 focus:ring-indigo-500 border-slate-300 rounded"
+                                                />
+                                                <span className="text-sm font-medium text-slate-700">
+                                                    Add {addOn.name} <span className="text-indigo-600 font-bold">+RM{addOn.price.toFixed(0)}</span>
+                                                </span>
+                                            </label>
+
+                                            {isSelected && (
+                                                <>
+                                                    {/* Variant selector (if variants exist) */}
+                                                    {addOn.variants.length > 0 && (
+                                                        <div className="ml-8">
+                                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">
+                                                                {addOn.variantField || 'Option'}
+                                                            </label>
+                                                            <div className="flex flex-wrap gap-2">
+                                                                {addOn.variants.map(v => (
+                                                                    <button
+                                                                        key={v}
+                                                                        type="button"
+                                                                        onClick={() => setSelectedAddOns(prev => ({
+                                                                            ...prev,
+                                                                            [addOn.id]: { ...prev[addOn.id], variant: v },
+                                                                        }))}
+                                                                        className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-all ${selVariant === v
+                                                                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                                                                                : 'bg-white text-slate-600 border-slate-300 hover:border-indigo-400'
+                                                                            }`}
+                                                                    >
+                                                                        {v}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {/* Quantity selector */}
+                                                    <div className="ml-8 flex items-center gap-3">
+                                                        <span className="text-xs font-bold text-slate-500 uppercase">Qty:</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setSelectedAddOns(prev => ({
+                                                                ...prev,
+                                                                [addOn.id]: { ...prev[addOn.id], quantity: Math.max(1, selQty - 1) },
+                                                            }))}
+                                                            className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center font-bold text-sm transition"
+                                                        >−</button>
+                                                        <span className="w-8 text-center font-bold text-slate-800">{selQty}</span>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setSelectedAddOns(prev => ({
+                                                                ...prev,
+                                                                [addOn.id]: { ...prev[addOn.id], quantity: selQty + 1 },
+                                                            }))}
+                                                            className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center font-bold text-sm transition"
+                                                        >+</button>
+                                                        <span className="text-xs text-slate-400 ml-2">
+                                                            = +RM{(addOn.price * selQty).toFixed(0)}
+                                                        </span>
+                                                    </div>
+                                                </>
+                                            )}
                                         </div>
-                                    </div>
-                                )}
-                                {addTshirt && tshirtAddOn && (
-                                    <p className="text-xs text-slate-500 text-center pt-1">
-                                        Per unit: RM{product.price.toFixed(0)} + RM{tshirtAddOn.price.toFixed(0)} = <span className="font-bold text-slate-700">RM{effectivePrice.toFixed(0)}</span>
-                                    </p>
-                                )}
+                                    );
+                                })}
                             </div>
                         )}
 
@@ -385,7 +458,7 @@ const ProductDetailPage: React.FC = () => {
                             onClick={() => setIsTermsModalOpen(true)}
                             disabled={
                                 (needsSession && (!selectedSession || availableSlotsForBooking <= 0)) ||
-                                (addTshirt && !tshirtSize) ||
+                                addOnHasMissingVariant ||
                                 isFullyBooked
                             }
                             className="w-full bg-slate-900 text-white font-bold py-4 px-6 rounded-xl shadow-lg shadow-slate-200 transition-all duration-300 hover:bg-indigo-600 hover:shadow-indigo-300 hover:scale-[1.01] active:scale-[0.99] disabled:bg-slate-300 disabled:shadow-none disabled:scale-100 disabled:cursor-not-allowed flex items-center justify-center gap-2 text-lg"
@@ -419,6 +492,36 @@ const ProductDetailPage: React.FC = () => {
                 onAgree={handleAgreeAndAddToCart}
                 onClose={() => setIsTermsModalOpen(false)}
             />
+
+            {/* Post-Add-to-Cart Prompt Modal */}
+            {showPostAddModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-60 flex justify-center items-center z-50 p-4">
+                    <div className="bg-white p-6 rounded-xl shadow-xl w-full max-w-sm text-center">
+                        <div className="text-4xl mb-4">✅</div>
+                        <h2 className="text-xl font-bold text-slate-800 mb-2">Added to Cart!</h2>
+                        <p className="text-sm text-slate-500 mb-6">
+                            {product.name} ×{quantity}
+                            {allAddOns.filter(a => selectedAddOns[a.id]?.selected).length > 0 && (
+                                <> + {allAddOns.filter(a => selectedAddOns[a.id]?.selected).length} add-on(s)</>
+                            )}
+                        </p>
+                        <div className="space-y-2">
+                            <button
+                                onClick={() => navigate('/cart')}
+                                className="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 transition"
+                            >
+                                Proceed to Checkout →
+                            </button>
+                            <button
+                                onClick={() => navigate('/')}
+                                className="w-full bg-slate-200 text-slate-700 font-bold py-3 px-4 rounded-lg hover:bg-slate-300 transition"
+                            >
+                                Continue Shopping
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

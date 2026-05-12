@@ -127,38 +127,6 @@ const Storefront: React.FC = () => {
             </div>
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 -mt-10 relative z-20">
-                {/* Filter & Search Bar */}
-                <div className="bg-white rounded-2xl shadow-xl p-4 sm:p-6 mb-12 border border-slate-100 flex flex-col lg:flex-row justify-between items-center gap-6 sticky top-24 z-30 transition-shadow hover:shadow-2xl">
-                    <div className="flex gap-2 overflow-x-auto w-full lg:w-auto pb-2 lg:pb-0 no-scrollbar items-center">
-                        <span className="text-sm font-bold text-slate-400 uppercase tracking-wider mr-2">Filters:</span>
-                        {categories.map(cat => (
-                            <button
-                                key={cat}
-                                onClick={() => setSelectedCategory(cat)}
-                                className={`px-5 py-2.5 rounded-full text-sm font-bold transition-all duration-300 whitespace-nowrap ${selectedCategory === cat
-                                    ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-200 transform scale-105'
-                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-900'
-                                    }`}
-                            >
-                                {cat}
-                            </button>
-                        ))}
-                    </div>
-
-                    <div className="flex items-center gap-3 w-full lg:w-auto bg-slate-50 p-1.5 rounded-lg border border-slate-200">
-                        <span className="text-xs font-bold text-slate-500 uppercase px-2">Sort</span>
-                        <select
-                            value={sortOption}
-                            onChange={(e) => setSortOption(e.target.value)}
-                            className="bg-transparent text-slate-700 text-sm font-medium focus:ring-0 border-none p-0 pr-8 cursor-pointer"
-                        >
-                            <option value="name-asc">Name (A-Z)</option>
-                            <option value="price-asc">Price (Low to High)</option>
-                            <option value="price-desc">Price (High to Low)</option>
-                        </select>
-                    </div>
-                </div>
-
                 {isLoading ? (
                     <div className="flex flex-col justify-center items-center py-32">
                         <LoadingSpinner />

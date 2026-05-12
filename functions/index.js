@@ -7,19 +7,18 @@ const { HttpsError } = require("firebase-functions/v2/https");
 admin.initializeApp();
 const db = admin.firestore();
 
-// --- CREDENTIALS ---
-const BIZAPP_API_KEY = "83ndoryq-aaaw-v5lj-3tiy-2t4cuygj9rvn";
-const BIZAPP_CATEGORY = "w4zw0teb";
-const LOYVERSE_TOKEN = "d9d14fd02ac34292ab50e221da50ddb3";
-const LOYVERSE_STORE_ID = "7611fff5-5af4-43e4-8758-3f06a1090eed";
-const LOYVERSE_PAYMENT_ID = "df4f339c-c806-4cf0-83c9-43ef624a78ac";
+// --- CREDENTIALS (from Firebase Secrets) ---
+const { defineSecret } = require("firebase-functions/params");
+const BIZAPP_API_KEY = defineSecret("BIZAPP_API_KEY");
+const BIZAPP_CATEGORY = defineSecret("BIZAPP_CATEGORY");
+const LOYVERSE_TOKEN = defineSecret("LOYVERSE_TOKEN");
+const LOYVERSE_STORE_ID = defineSecret("LOYVERSE_STORE_ID");
+const LOYVERSE_PAYMENT_ID = defineSecret("LOYVERSE_PAYMENT_ID");
+const RESEND_API_KEY = defineSecret("RESEND_API_KEY");
 
-const loyverseApi = axios.create({
-  baseURL: "https://api.loyverse.com/v1.0",
-  headers: { "Authorization": `Bearer ${LOYVERSE_TOKEN}` },
-});
+const { Resend } = require("resend");
 
-// HELPER: Find or Create Customer in Loyverse
+// --- CUSTOMERS ---
 async function findOrCreateLoyverseCustomer(name, email, phone) {
   try {
     // 1. Search by Email first (Most reliable unique identifier)
@@ -48,6 +47,71 @@ async function findOrCreateLoyverseCustomer(name, email, phone) {
   }
 }
 
+// HELPER: Send confirmation email via Resend
+async function sendConfirmationEmail(bookingData, bookingRef) {
+  try {
+    const resend = new Resend(RESEND_API_KEY.value());
+    const items = bookingData.items || [];
+    const bookingId = bookingRef.id;
+
+    // Build redemption codes list for the email
+    let codesHtml = '';
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      codesHtml += `<p style="margin:8px 0"><strong>${item.productName}</strong> (x${item.quantity})`;
+      if (item.sessionDate) codesHtml += ` — ${item.sessionDate}`;
+      codesHtml += `</p>`;
+      codesHtml += `<p style="margin:2px 0 2px 20px;font-family:monospace;font-size:14px">Code: ${bookingId}-${i}</p>`;
+
+      if (item.addOns) {
+        for (let j = 0; j < item.addOns.length; j++) {
+          const addon = item.addOns[j];
+          const addonQty = addon.quantity || 1;
+          for (let k = 0; k < addonQty; k++) {
+            const code = addonQty > 1
+              ? `${bookingId}-${i}-addon-${j}-${k}`
+              : `${bookingId}-${i}-addon-${j}`;
+            codesHtml += `<p style="margin:2px 0 2px 40px;font-size:13px">🎁 ${addon.name}${addon.variant ? ` (${addon.variant})` : ''}</p>`;
+            codesHtml += `<p style="margin:2px 0 2px 40px;font-family:monospace;font-size:14px">Code: ${code}</p>`;
+          }
+        }
+      }
+    }
+
+    const html = `
+      <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px">
+        <h1 style="color:#4f46e5">Booking Confirmed!</h1>
+        <p>Hi ${bookingData.customerFullName},</p>
+        <p>Your payment has been received. Here are your booking details:</p>
+        <div style="background:#f8fafc;border-radius:8px;padding:16px;margin:16px 0">
+          <p><strong>Booking ID:</strong> ${bookingId}</p>
+          <p><strong>Total:</strong> RM ${(bookingData.totalAmount || 0).toFixed(2)}</p>
+        </div>
+        <h3>Your Redemption Codes</h3>
+        ${codesHtml}
+        <p style="margin-top:24px;padding:16px;background:#fef3c7;border-radius:8px">
+          <strong>Important:</strong> Show these codes (or the QR codes from your booking page)
+          at the event check-in counter. Each code can only be used once.
+        </p>
+        <p style="margin-top:24px;color:#64748b;font-size:12px">
+          LRC Putrajaya · Lake Recreation Center
+        </p>
+      </div>
+    `;
+
+    await resend.emails.send({
+      from: 'LRC Putrajaya <noreply@lrc.my>',
+      to: bookingData.customerEmail,
+      subject: `Booking Confirmed — ${bookingId}`,
+      html: html,
+    });
+
+    console.log(`Confirmation email sent to ${bookingData.customerEmail} for booking ${bookingId}`);
+  } catch (err) {
+    console.error("Email sending failed (non-fatal):", err.message);
+  }
+}
+
 // SEPARATE FUNCTION FOR LOYVERSE SYNC (Reusable)
 async function syncBookingToLoyverse(bookingData, bookingRef) {
   try {
@@ -64,10 +128,15 @@ async function syncBookingToLoyverse(bookingData, bookingRef) {
       bookingData.customerPhone
     );
 
+    const loyverseApi = axios.create({
+      baseURL: "https://api.loyverse.com/v1.0",
+      headers: { "Authorization": `Bearer ${LOYVERSE_TOKEN.value()}` },
+    });
+
     const lineItems = [];
     if (bookingData.items) {
       for (const item of bookingData.items) {
-        const productDoc = await db.collection("products").doc(item.productId).get();
+        const productDoc = await db.collection("courses").doc(item.productId).get();
         const sku = productDoc.data()?.sku;
         if (sku) {
           try {
@@ -87,15 +156,24 @@ async function syncBookingToLoyverse(bookingData, bookingRef) {
           console.warn(`Product ${item.productId} in Firebase has no SKU field.`);
         }
         
-        // Add-on line items (t-shirts by size)
+        // Add-on line items (using explicit loyverseSku from add-on definition)
         if (item.addOns) {
           for (const addon of item.addOns) {
-            const addonSku = `${addon.addOnId.toUpperCase()}-${addon.variant.toUpperCase()}`; // e.g., TSHIRT-XL
+            // Skip if no loyverseSku configured — admin hasn't mapped this add-on to Loyverse
+            if (!addon.loyverseSku) {
+              console.warn(`Add-on "${addon.name}" has no loyverseSku — skipping Loyverse sync.`);
+              continue;
+            }
+            // Build full SKU: base SKU + variant (if variant exists)
+            const addonSku = addon.variant
+              ? `${addon.loyverseSku}-${addon.variant.toUpperCase()}`
+              : addon.loyverseSku;
+            const addonQty = addon.quantity || 1; // Use independent add-on quantity, fallback to 1
             try {
               const vRes = await loyverseApi.get(`/variants?sku=${addonSku}`);
               const variantId = vRes.data.variants?.[0]?.variant_id;
               if (variantId) {
-                lineItems.push({ variant_id: variantId, quantity: 1, price: addon.price });
+                lineItems.push({ variant_id: variantId, quantity: addonQty, price: addon.price });
               } else {
                 console.warn(`Add-on SKU ${addonSku} found but no variant ID`);
               }
@@ -110,9 +188,9 @@ async function syncBookingToLoyverse(bookingData, bookingRef) {
     if (lineItems.length > 0) {
       // 2. Create Receipt with Customer and BillCode
       await loyverseApi.post("/receipts", {
-        store_id: LOYVERSE_STORE_ID,
+        store_id: LOYVERSE_STORE_ID.value(),
         line_items: lineItems,
-        payments: [{ payment_type_id: LOYVERSE_PAYMENT_ID, amount: bookingData.totalAmount }],
+        payments: [{ payment_type_id: LOYVERSE_PAYMENT_ID.value(), amount: bookingData.totalAmount }],
         customer_id: customerId, // Link to customer
         receipt_number: bookingData.billcode || bookingRef.id, // Use BillCode as Receipt #
         note: `Online Booking: ${bookingData.billcode}` // Extra visibility
@@ -250,21 +328,29 @@ async function processSuccessfulPayment(billcode, amount, bookingIdFromWebhook) 
           itemName: item.productName || item.courseName || 'Item',
         });
         
-        // Add-on (merchandise) redemptions
+        // Add-on (merchandise) redemptions — one per quantity unit
         if (item.addOns) {
           for (let j = 0; j < item.addOns.length; j++) {
-            const merchCode = `${bookingRef.id}-${i}-addon-${j}`;
-            const merchRef = db.collection('redemptions').doc(merchCode);
-            redemptionBatch.set(merchRef, {
-              bookingId: bookingRef.id,
-              itemIndex: i,
-              addOnIndex: j,
-              itemType: 'merchandise',
-              code: merchCode,
-              status: 'pending',
-              customerName: bookingData.customerFullName,
-              itemName: `${item.addOns[j].name} (${item.addOns[j].variant})`,
-            });
+            const addon = item.addOns[j];
+            const addonQty = addon.quantity || 1;
+            for (let k = 0; k < addonQty; k++) {
+              const merchCode = addonQty > 1
+                ? `${bookingRef.id}-${i}-addon-${j}-${k}`
+                : `${bookingRef.id}-${i}-addon-${j}`;
+              const merchRef = db.collection('redemptions').doc(merchCode);
+              redemptionBatch.set(merchRef, {
+                bookingId: bookingRef.id,
+                itemIndex: i,
+                addOnIndex: j,
+                itemType: 'merchandise',
+                code: merchCode,
+                status: 'pending',
+                customerName: bookingData.customerFullName,
+                itemName: addon.variant
+                  ? `${addon.name} (${addon.variant})`
+                  : addon.name,
+              });
+            }
           }
         }
       }
@@ -277,15 +363,24 @@ async function processSuccessfulPayment(billcode, amount, bookingIdFromWebhook) 
     console.error("Redemption generation error (non-fatal):", redemptionErr.message);
   }
 
-  // 6. LOYVERSE SYNC REMOVED (Manual only)
-  // await syncBookingToLoyverse(bookingData, bookingRef);
-  console.log("Loyverse Sync skipped (Manual Mode). SyncStatus is 'pending'.");
+  // 5.6 SEND CONFIRMATION EMAIL (non-blocking, fire-and-forget)
+  sendConfirmationEmail(bookingData, bookingRef).catch(err => {
+    console.error("Confirmation email failed (non-blocking):", err.message);
+  });
+
+  // 6. LOYVERSE SYNC — runs AFTER the transaction commits so a Loyverse
+  //    failure never rolls back a successful payment.
+  syncBookingToLoyverse(bookingData, bookingRef).catch(err => {
+    console.error("Loyverse Sync failed (non-blocking):", err.message);
+  });
 }
 
 // 1. BILL CREATION (Fixed: Removed forced billcode to prevent API error)
 // 1. BILL CREATION (Fixed: Force save billcode and log full response)
 // 1. BILL CREATION (Fixed: Force save billcode and log full response)
-exports.createBizappayBill = onCall({ cors: true, timeoutSeconds: 300 }, async (request) => {
+exports.createBizappayBill = onCall(
+  { cors: true, timeoutSeconds: 300, secrets: [BIZAPP_API_KEY, BIZAPP_CATEGORY] },
+  async (request) => {
   console.log("1. Starting Bill Creation for:", request.data.bookingId);
 
   try {
@@ -293,14 +388,14 @@ exports.createBizappayBill = onCall({ cors: true, timeoutSeconds: 300 }, async (
 
     // Auth
     const loginData = new URLSearchParams();
-    loginData.append('apiKey', BIZAPP_API_KEY);
+    loginData.append('apiKey', BIZAPP_API_KEY.value());
     const tokenRes = await axios.post('https://bizappay.my/api/v3/token', loginData);
     const authToken = tokenRes.data?.token || tokenRes.data?.data?.token;
 
     // Build Request
     const formData = new URLSearchParams();
-    formData.append('apiKey', BIZAPP_API_KEY);
-    formData.append('category', BIZAPP_CATEGORY);
+    formData.append('apiKey', BIZAPP_API_KEY.value());
+    formData.append('category', BIZAPP_CATEGORY.value());
     formData.append('name', 'LRC Course Booking');
     formData.append('amount', parseFloat(amount).toFixed(2));
     formData.append('payer_name', customerName);
@@ -355,37 +450,138 @@ exports.createBizappayBill = onCall({ cors: true, timeoutSeconds: 300 }, async (
   }
 });
 
-// 2. WEBHOOK (Improved Parsing)
-// 2. WEBHOOK (Improved Parsing)
-exports.bizappayWebhook = onRequest({ timeoutSeconds: 300 }, async (req, res) => {
+// 2. WEBHOOK — with billcode validation (Bizappay doesn't use HMAC)
+// Docs: callback_url receives query params: billcode, billamount, billstatus,
+//        billinvoice, billtrans
+//        billstatus: 1=success, 2=pending, 3=failed, 4=no_action
+exports.bizappayWebhook = onRequest({ timeoutSeconds: 300, secrets: [BIZAPP_API_KEY] }, async (req, res) => {
   let bCode = req.query.billcode || req.body.billcode;
   let bStatus = req.query.billstatus || req.body.billstatus;
   let bAmount = req.query.billamount || req.body.billamount;
-  let bRef = req.query.ref || req.body.ref || req.query.order_id || req.body.order_id; // Try to get booking ID
+  let bInvoice = req.query.billinvoice || req.body.billinvoice || '';
+  let bTrans = req.query.billtrans || req.body.billtrans || '';
+  let bRef = req.query.ref || req.body.ref || req.query.order_id || req.body.order_id;
 
   // Parse Raw Body for complex cases (multipart/form-data)
   if (req.rawBody) {
     const raw = req.rawBody.toString();
-    console.log("Raw Webhook Body:", raw); // Debugging
+    console.log("Raw Webhook Body:", raw);
 
-    // IMPROVED REGEX: Handles mixed \r\n or \n, captures value, AND IS CASE-INSENSITIVE ('i' flag)
     const bc = raw.match(/name="billcode"[\r\n]+(.*?)(?:[\r\n]|$|--)/i);
     const st = raw.match(/name="billstatus"[\r\n]+(.*?)(?:[\r\n]|$|--)/i);
     const am = raw.match(/name="billamount"[\r\n]+(.*?)(?:[\r\n]|$|--)/i);
+    const inv = raw.match(/name="billinvoice"[\r\n]+(.*?)(?:[\r\n]|$|--)/i);
+    const tr = raw.match(/name="billtrans"[\r\n]+(.*?)(?:[\r\n]|$|--)/i);
     const rf = raw.match(/name="order_id"[\r\n]+(.*?)(?:[\r\n]|$|--)/i) || raw.match(/name="ref"[\r\n]+(.*?)(?:[\r\n]|$|--)/i);
 
     if (bc) bCode = bc[1].trim();
     if (st) bStatus = st[1].trim();
     if (am) bAmount = am[1].trim();
+    if (inv) bInvoice = inv[1].trim();
+    if (tr) bTrans = tr[1].trim();
     if (rf) bRef = rf[1].trim();
   }
 
-  // Accept status '1', 'paid', or '2' (some gateways use 2 for success) - checking docs implies 1 is paid.
-  if (String(bStatus) === '1' || String(bStatus).toLowerCase() === 'paid') {
-    await processSuccessfulPayment(bCode, bAmount, bRef);
-  } else {
-    console.log(`Payment Status ${bStatus} - Ignoring.`);
+  // --- BILLCODE VALIDATION (anti-spoofing) ---
+  // Bizappay doesn't send HMAC signatures. Security relies on the billcode
+  // being an unguessable random string. We validate it matches a real booking.
+  if (!bCode) {
+    console.error("WEBHOOK REJECTED: No billcode received");
+    return res.status(400).send("Missing billcode");
   }
+
+  const cleanCode = String(bCode).trim();
+  const snapshot = await db.collection("bookings")
+    .where("billcode", "==", cleanCode)
+    .limit(1)
+    .get();
+
+  if (snapshot.empty) {
+    // Also try case-insensitive match (fallback for data inconsistencies)
+    const allPending = await db.collection("bookings")
+      .where("paymentStatus", "==", "pending")
+      .get();
+    const match = allPending.docs.find(d => {
+      const stored = d.data().billcode;
+      return stored && String(stored).trim().toLowerCase() === cleanCode.toLowerCase();
+    });
+    if (!match) {
+      console.error(`WEBHOOK REJECTED: Billcode "${cleanCode}" not found in Firestore`);
+      return res.status(404).send("Billcode not recognized");
+    }
+    console.log(`Webhook billcode matched via case-insensitive fallback: ${cleanCode}`);
+  }
+
+  const statusCode = String(bStatus).trim();
+  console.log(`Webhook received: billcode=${cleanCode}, status=${statusCode}, amount=${bAmount}, invoice=${bInvoice}`);
+
+  // --- SERVER-TO-SERVER VERIFICATION ---
+  // Independently confirm payment status via Bizappay API (not just trusting
+  // the webhook params, which could be spoofed).
+  let verifiedStatus = statusCode;
+  try {
+    const verifyLogin = new URLSearchParams();
+    verifyLogin.append('apiKey', BIZAPP_API_KEY.value());
+    const verifyTokenRes = await axios.post('https://bizappay.my/api/v3/token', verifyLogin);
+    const verifyAuthToken = verifyTokenRes.data?.token || verifyTokenRes.data?.data?.token;
+
+    const verifyForm = new URLSearchParams();
+    verifyForm.append('apiKey', BIZAPP_API_KEY.value());
+    verifyForm.append('search_str', cleanCode);
+    verifyForm.append('latest', 'true');
+
+    const verifyRes = await axios.post('https://www.bizappay.my/api/v3/bill/info', verifyForm, {
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Authentication': verifyAuthToken }
+    });
+
+    const bill = verifyRes.data?.bill;
+    if (bill) {
+      // Bizappay returns payments as array (multipayment) or single object
+      const payments = Array.isArray(bill.payments) ? bill.payments : (bill.payments ? [bill.payments] : []);
+      const latest = payments[payments.length - 1]; // last payment is most recent
+      if (latest && latest.status) {
+        verifiedStatus = String(latest.status);
+        console.log(`Server-verified status: ${verifiedStatus} (webhook claimed: ${statusCode})`);
+        if (verifiedStatus !== statusCode) {
+          console.warn(`STATUS MISMATCH: Webhook said ${statusCode}, Bizappay says ${verifiedStatus}. Using verified status.`);
+        }
+      }
+    }
+  } catch (verifyErr) {
+    // If verification call fails, fall back to webhook status (don't block payment)
+    console.error("Server-to-server verification failed — falling back to webhook status:", verifyErr.message);
+  }
+  // --- END VERIFICATION ---
+
+  // --- HANDLE ALL STATUS CODES ---
+  if (verifiedStatus === '1') {
+    // SUCCESS — process payment
+    await processSuccessfulPayment(cleanCode, bAmount, bRef);
+  } else if (verifiedStatus === '3') {
+    // FAILED — update booking status
+    console.log(`Payment FAILED for billcode ${cleanCode}`);
+    try {
+      const bookingsSnap = await db.collection("bookings")
+        .where("billcode", "==", cleanCode)
+        .get();
+      if (!bookingsSnap.empty) {
+        await bookingsSnap.docs[0].ref.update({
+          paymentStatus: 'failed',
+          syncStatus: 'failed',
+          syncError: `Bizappay payment failed (status: ${verifiedStatus})`
+        });
+      }
+    } catch (err) {
+      console.error("Failed to update booking as failed:", err.message);
+    }
+  } else if (verifiedStatus === '2') {
+    console.log(`Payment PENDING for billcode ${cleanCode} — waiting...`);
+  } else if (verifiedStatus === '4') {
+    console.log(`Payment NO ACTION for billcode ${cleanCode} — customer did not pay.`);
+  } else {
+    console.log(`Unknown status "${verifiedStatus}" for billcode ${cleanCode} — ignoring.`);
+  }
+
   res.status(200).send("OK");
 });
 
@@ -398,19 +594,28 @@ exports.manualAdminUpdate = onRequest({ cors: true, timeoutSeconds: 300 }, async
   res.status(200).send("Sync Complete");
 });
 
-// 4. MANUAL LOYVERSE SYNC (Callable)
-// 4. MANUAL LOYVERSE SYNC (Callable)
-exports.syncToLoyverse = onCall({ cors: true, timeoutSeconds: 300 }, async (request) => {
-  const { bookingId } = request.data;
-  if (!bookingId) throw new HttpsError('invalid-argument', 'Booking ID is required.');
+// 4. MANUAL LOYVERSE SYNC (Callable — Admin Only)
+exports.syncToLoyverse = onCall(
+  { cors: true, timeoutSeconds: 300, secrets: [LOYVERSE_TOKEN, LOYVERSE_STORE_ID, LOYVERSE_PAYMENT_ID] },
+  async (request) => {
+    // --- Admin Auth Check ---
+    if (!request.auth || !request.auth.token || request.auth.token.admin !== true) {
+      throw new HttpsError('permission-denied', 'Only admins can trigger Loyverse sync.');
+    }
 
-  const docRef = db.collection("bookings").doc(bookingId);
-  const docSnap = await docRef.get();
+    const { bookingId } = request.data;
+    if (!bookingId) throw new HttpsError('invalid-argument', 'Booking ID is required.');
 
-  if (!docSnap.exists) throw new HttpsError('not-found', 'Booking not found.');
+    const docRef = db.collection("bookings").doc(bookingId);
+    const docSnap = await docRef.get();
 
-  const bookingData = docSnap.data();
-  if (bookingData.paymentStatus !== 'paid') throw new HttpsError('failed-precondition', 'Booking is not paid yet.');
+    if (!docSnap.exists) throw new HttpsError('not-found', 'Booking not found.');
 
-  return await syncBookingToLoyverse(bookingData, docRef);
-});
+    const bookingData = docSnap.data();
+    if (bookingData.paymentStatus !== 'paid') {
+      throw new HttpsError('failed-precondition', 'Booking is not paid yet.');
+    }
+
+    return await syncBookingToLoyverse(bookingData, docRef);
+  }
+);

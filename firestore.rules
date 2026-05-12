@@ -1,0 +1,61 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ============================================================
+    // HELPER: Check if user is an admin (custom claim)
+    // ============================================================
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.admin == true;
+    }
+
+    // ============================================================
+    // PUBLIC READ collections (anyone can browse the store)
+    // ============================================================
+    match /courses/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /sessions/{docId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /categories/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ============================================================
+    // PROTECTED collections (Cloud Functions only, admin can read)
+    // ============================================================
+    match /bookings/{docId} {
+      // Only Cloud Functions (admin SDK) can write.
+      // Admin users can read to view bookings.
+      // Guest users CANNOT read — prevents PII leakage.
+      allow read: if isAdmin();
+      allow create: if false;
+      allow update, delete: if false;
+    }
+
+    match /redemptions/{docId} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // ============================================================
+    // DENY everything else by default
+    // ============================================================
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

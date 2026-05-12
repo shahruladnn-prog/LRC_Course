@@ -1,11 +1,13 @@
 export type ProductType = 'course' | 'event_ticket' | 'entrance_ticket';
 
 export interface AddOn {
-    id: string;           // e.g., 'tshirt'
-    name: string;         // e.g., 'Event T-Shirt'
+    id: string;           // UUID — auto-generated, e.g., 'a1b2c3d4-...'
+    name: string;         // Admin-assigned, e.g., 'Event T-Shirt', 'Gift Voucher', 'Event Kit'
     price: number;        // e.g., 25
-    variantField: string; // e.g., 'Size'
-    variants: string[];   // e.g., ['S', 'M', 'L', 'XL']
+    variantField: string; // e.g., 'Size' — leave empty if no variants
+    variants: string[];   // e.g., ['S', 'M', 'L', 'XL'] — leave empty if no variants
+    loyverseSku?: string; // Base SKU prefix for Loyverse matching (e.g., 'TSHIRT' → 'TSHIRT-XL')
+                          // If empty, this add-on is skipped in Loyverse sync
 }
 
 export interface Product {
@@ -22,6 +24,7 @@ export interface Product {
     addOns?: AddOn[];
     eventDate?: string; // For entrance tickets without sessions
     images?: string[];  // Up to 3 image URLs
+    showRemainingSlots?: boolean; // Toggle: show remaining slot count on storefront (default true)
 }
 
 export interface Session {
@@ -41,8 +44,9 @@ export interface Category {
 export interface CartAddOn {
     addOnId: string;
     name: string;
-    variant: string;  // e.g., 'XL'
+    variant: string;  // e.g., 'XL' — formatted variant selection
     price: number;
+    quantity: number; // Independent from parent CartItem.quantity (e.g., 3 t-shirts with 2 tickets)
 }
 
 export interface CartItem {
