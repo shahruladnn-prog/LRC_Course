@@ -188,11 +188,11 @@ export const getProducts = async (): Promise<Product[]> => {
         if (!courseSnapshot.empty) {
             return courseSnapshot.docs.map(doc => ({
                 id: doc.id,
-                ...doc.data(),
-                type: 'course' as const,
                 hasAddOns: false,
                 addOns: [],
-            } as Product));
+                ...doc.data(),
+                type: 'course' as const,
+            } as unknown as Product));
         }
     } catch (_) { /* courses collection may not exist or no permissions */ }
 
