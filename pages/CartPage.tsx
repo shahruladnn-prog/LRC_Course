@@ -27,50 +27,71 @@ const CartPage: React.FC = () => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // UPDATED: handleCheckout now redirects to Bizappay
-    const handleCheckout = async () => {
-        // Validation Regex
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        // Phone: Allows +60 or 01, followed by digits, 9-14 chars total
-        const phoneRegex = /^(\+?6?0)[0-9]{7,14}$/;
+    const isTestMode = import.meta.env.VITE_TEST_MODE === 'true';
 
+    const validateForm = () => {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        const phoneRegex = /^(\+?6?0)[0-9]{7,14}$/;
         if (!customerFullName || customerFullName.length <= 5) {
-            setError("Full Name must be more than 5 characters (Bizappay requirement).");
-            return;
+            setError("Full Name must be more than 5 characters.");
+            return false;
         }
         if (!emailRegex.test(customerEmail)) {
             setError("Please enter a valid email address.");
-            return;
+            return false;
         }
         if (!phoneRegex.test(customerPhone.replace(/\s/g, ''))) {
             setError("Please enter a valid phone number (e.g., 0123456789).");
-            return;
+            return false;
         }
+        return true;
+    };
 
+    const buildBookingItems = (): BookingItem[] => items.map(item => {
+        const base: BookingItem = {
+            productId: item.productId,
+            productName: item.productName,
+            productType: item.productType,
+            price: item.price,
+            category: item.category,
+            quantity: item.quantity,
+        };
+        if (item.sessionId) base.sessionId = item.sessionId;
+        if (item.sessionDate) base.sessionDate = item.sessionDate;
+        if (item.addOns && item.addOns.length > 0) base.addOns = item.addOns;
+        return base;
+    });
+
+    const handleSimulatePayment = async () => {
+        if (!validateForm()) return;
         setError(null);
         setIsProcessing(true);
+        try {
+            const bookingId = await addBooking({
+                customerFullName,
+                customerPhone,
+                customerEmail,
+                items: buildBookingItems(),
+                totalAmount,
+                paymentStatus: 'pending',
+                bookingDate: new Date(),
+            });
+            await fetch(`https://manualadminupdate-2n7sc53hoa-uc.a.run.app?bookingId=${bookingId}&amount=${totalAmount}`);
+            clearCart();
+            navigate(`/confirmation?bookingId=${bookingId}`);
+        } catch (e: any) {
+            setError(e.message || "Simulation failed.");
+        } finally {
+            setIsProcessing(false);
+        }
+    };
 
-        const bookingItems: BookingItem[] = items.map(item => {
-            const base: BookingItem = {
-                productId: item.productId,
-                productName: item.productName,
-                productType: item.productType,
-                price: item.price,
-                category: item.category,
-                quantity: item.quantity,
-            };
-            // Only include optional fields when they have values (Firestore rejects undefined)
-            if (item.sessionId) {
-                base.sessionId = item.sessionId;
-            }
-            if (item.sessionDate) {
-                base.sessionDate = item.sessionDate;
-            }
-            if (item.addOns && item.addOns.length > 0) {
-                base.addOns = item.addOns;
-            }
-            return base;
-        });
+    // UPDATED: handleCheckout now redirects to Bizappay
+    const handleCheckout = async () => {
+        if (!validateForm()) return;
+        setError(null);
+        setIsProcessing(true);
+        const bookingItems = buildBookingItems();
 
         try {
             // 1. Create the initial booking document with 'pending' status
@@ -207,6 +228,15 @@ const CartPage: React.FC = () => {
                                 >
                                     {isProcessing ? 'Redirecting to Payment Gateway...' : 'Proceed to Payment'}
                                 </button>
+                                {isTestMode && (
+                                    <button
+                                        onClick={handleSimulatePayment}
+                                        disabled={isProcessing}
+                                        className="w-full mt-2 bg-yellow-500 text-white font-bold py-3 px-4 rounded-lg transition duration-300 ease-in-out hover:bg-yellow-600 disabled:bg-slate-400 disabled:cursor-not-allowed"
+                                    >
+                                        {isProcessing ? 'Processing...' : '⚡ Simulate Payment (Test Mode)'}
+                                    </button>
+                                )}
                             </div>
                         </div>
                     </div>
