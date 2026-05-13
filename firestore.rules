@@ -43,11 +43,11 @@ service cloud.firestore {
     // PROTECTED collections (Cloud Functions only, admin can read)
     // ============================================================
     match /bookings/{docId} {
-      // Only Cloud Functions (admin SDK) can write.
+      // Guests create bookings during checkout (no auth required).
+      // Only admin SDK (Cloud Functions) can update/delete.
       // Admin users can read to view bookings.
-      // Guest users CANNOT read — prevents PII leakage.
       allow read: if isAdmin();
-      allow create: if false;
+      allow create: if true;
       allow update, delete: if false;
     }
 
