@@ -14,9 +14,9 @@ const BIZAPP_CATEGORY = defineSecret("BIZAPP_CATEGORY");
 const LOYVERSE_TOKEN = defineSecret("LOYVERSE_TOKEN");
 const LOYVERSE_STORE_ID = defineSecret("LOYVERSE_STORE_ID");
 const LOYVERSE_PAYMENT_ID = defineSecret("LOYVERSE_PAYMENT_ID");
-const RESEND_API_KEY = defineSecret("RESEND_API_KEY");
+const SMTP_PASSWORD = defineSecret("SMTP_PASSWORD");
 
-const { Resend } = require("resend");
+const nodemailer = require("nodemailer");
 
 // --- CUSTOMERS ---
 async function findOrCreateLoyverseCustomer(name, email, phone) {
@@ -50,7 +50,12 @@ async function findOrCreateLoyverseCustomer(name, email, phone) {
 // HELPER: Send confirmation email via Resend
 async function sendConfirmationEmail(bookingData, bookingRef) {
   try {
-    const resend = new Resend(RESEND_API_KEY.value());
+    const transporter = nodemailer.createTransport({
+      host: 'mail.wetlandputrajaya.com',
+      port: 465,
+      secure: true,
+      auth: { user: 'hello@wetlandputrajaya.com', pass: SMTP_PASSWORD.value() },
+    });
     const items = bookingData.items || [];
     const bookingId = bookingRef.id;
 
@@ -99,7 +104,7 @@ async function sendConfirmationEmail(bookingData, bookingRef) {
       </div>
     `;
 
-    await resend.emails.send({
+    await transporter.sendMail({
       from: 'LRC Putrajaya <hello@wetlandputrajaya.com>',
       to: bookingData.customerEmail,
       subject: `Booking Confirmed — ${bookingId}`,
@@ -454,7 +459,7 @@ exports.createBizappayBill = onCall(
 // Docs: callback_url receives query params: billcode, billamount, billstatus,
 //        billinvoice, billtrans
 //        billstatus: 1=success, 2=pending, 3=failed, 4=no_action
-exports.bizappayWebhook = onRequest({ timeoutSeconds: 300, secrets: [BIZAPP_API_KEY] }, async (req, res) => {
+exports.bizappayWebhook = onRequest({ timeoutSeconds: 300, secrets: [BIZAPP_API_KEY, SMTP_PASSWORD, LOYVERSE_TOKEN, LOYVERSE_STORE_ID, LOYVERSE_PAYMENT_ID] }, async (req, res) => {
   let bCode = req.query.billcode || req.body.billcode;
   let bStatus = req.query.billstatus || req.body.billstatus;
   let bAmount = req.query.billamount || req.body.billamount;
@@ -587,7 +592,7 @@ exports.bizappayWebhook = onRequest({ timeoutSeconds: 300, secrets: [BIZAPP_API_
 
 // 3. MANUAL ADMIN SYNC
 // 3. MANUAL ADMIN SYNC
-exports.manualAdminUpdate = onRequest({ cors: true, timeoutSeconds: 300, secrets: [RESEND_API_KEY, LOYVERSE_TOKEN, LOYVERSE_STORE_ID, LOYVERSE_PAYMENT_ID] }, async (req, res) => {
+exports.manualAdminUpdate = onRequest({ cors: true, timeoutSeconds: 300, secrets: [SMTP_PASSWORD, LOYVERSE_TOKEN, LOYVERSE_STORE_ID, LOYVERSE_PAYMENT_ID] }, async (req, res) => {
   const { bookingId, amount } = req.query;
   // Admin update forces ID lookup
   await processSuccessfulPayment(null, amount, bookingId);
