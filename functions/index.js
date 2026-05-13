@@ -587,7 +587,7 @@ exports.bizappayWebhook = onRequest({ timeoutSeconds: 300, secrets: [BIZAPP_API_
 
 // 3. MANUAL ADMIN SYNC
 // 3. MANUAL ADMIN SYNC
-exports.manualAdminUpdate = onRequest({ cors: true, timeoutSeconds: 300 }, async (req, res) => {
+exports.manualAdminUpdate = onRequest({ cors: true, timeoutSeconds: 300, secrets: [RESEND_API_KEY, LOYVERSE_TOKEN, LOYVERSE_STORE_ID, LOYVERSE_PAYMENT_ID] }, async (req, res) => {
   const { bookingId, amount } = req.query;
   // Admin update forces ID lookup
   await processSuccessfulPayment(null, amount, bookingId);
