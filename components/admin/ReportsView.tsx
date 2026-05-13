@@ -56,6 +56,21 @@ const ReportsView: React.FC = () => {
         .sort((a, b) => b.revenue - a.revenue)
         .slice(0, 10);
 
+    // Add-on sales breakdown by name + variant
+    const addonSales = data ? data.bookings.reduce((acc, b) => {
+        b.items.forEach(item => {
+            (item.addOns || []).forEach(a => {
+                const key = `${a.name}||${a.variant || '—'}`;
+                if (!acc[key]) acc[key] = { name: a.name, variant: a.variant || '—', qty: 0, revenue: 0 };
+                acc[key].qty += a.quantity || 1;
+                acc[key].revenue += a.price * (a.quantity || 1);
+            });
+        });
+        return acc;
+    }, {} as Record<string, { name: string; variant: string; qty: number; revenue: number }>) : {};
+
+    const addonRows = Object.values(addonSales).sort((a, b) => b.qty - a.qty);
+
     const maxBarValue = Math.max(...Object.values(revenueByType), 1);
 
     const handleExportCSV = () => {
@@ -148,6 +163,44 @@ const ReportsView: React.FC = () => {
                             <p className="text-slate-500 text-sm">No paid bookings in selected date range.</p>
                         )}
                     </div>
+
+                    {/* Add-on Sales Breakdown */}
+                    {addonRows.length > 0 && (
+                        <div className="bg-white p-6 rounded-xl shadow-md">
+                            <h3 className="text-lg font-bold text-slate-800 mb-4">Add-on Sales (Merchandise)</h3>
+                            <div className="overflow-x-auto">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-slate-50 text-slate-500 uppercase text-xs">
+                                        <tr>
+                                            <th className="px-4 py-3 text-left">Item</th>
+                                            <th className="px-4 py-3 text-left">Size / Variant</th>
+                                            <th className="px-4 py-3 text-right">Qty Sold</th>
+                                            <th className="px-4 py-3 text-right">Revenue</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {addonRows.map((row, i) => (
+                                            <tr key={i}>
+                                                <td className="px-4 py-3 font-medium text-slate-900">{row.name}</td>
+                                                <td className="px-4 py-3">
+                                                    <span className="bg-slate-100 text-slate-700 text-xs font-semibold px-2 py-0.5 rounded-full">{row.variant}</span>
+                                                </td>
+                                                <td className="px-4 py-3 text-right font-bold text-slate-800">{row.qty}</td>
+                                                <td className="px-4 py-3 text-right font-mono">RM{row.revenue.toFixed(2)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                    <tfoot className="border-t-2 border-slate-200">
+                                        <tr>
+                                            <td colSpan={2} className="px-4 py-3 font-bold text-slate-700">Total</td>
+                                            <td className="px-4 py-3 text-right font-bold">{addonRows.reduce((s, r) => s + r.qty, 0)}</td>
+                                            <td className="px-4 py-3 text-right font-mono font-bold">RM{addonRows.reduce((s, r) => s + r.revenue, 0).toFixed(2)}</td>
+                                        </tr>
+                                    </tfoot>
+                                </table>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Top Products Table */}
                     <div className="bg-white p-6 rounded-xl shadow-md">

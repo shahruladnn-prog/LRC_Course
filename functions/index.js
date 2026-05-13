@@ -17,6 +17,7 @@ const LOYVERSE_PAYMENT_ID = defineSecret("LOYVERSE_PAYMENT_ID");
 const SMTP_PASSWORD = defineSecret("SMTP_PASSWORD");
 
 const nodemailer = require("nodemailer");
+const QRCode = require("qrcode");
 
 // --- CUSTOMERS ---
 async function findOrCreateLoyverseCustomer(name, email, phone) {
@@ -59,14 +60,24 @@ async function sendConfirmationEmail(bookingData, bookingRef) {
     const items = bookingData.items || [];
     const bookingId = bookingRef.id;
 
-    // Build redemption codes list for the email
+    // Helper: generate a QR code block (label + QR image)
+    const qrBlock = async (label, code, indent = '0px') => {
+      const dataUrl = await QRCode.toDataURL(code, { width: 160, margin: 1 });
+      return `
+        <div style="margin:10px 0 10px ${indent};display:inline-block;text-align:center">
+          <p style="margin:0 0 4px;font-size:13px">${label}</p>
+          <img src="${dataUrl}" width="120" height="120" alt="${code}" style="display:block"/>
+          <p style="margin:4px 0 0;font-family:monospace;font-size:11px;color:#475569">${code}</p>
+        </div>`;
+    };
+
+    // Build redemption codes list with QR codes
     let codesHtml = '';
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
-      codesHtml += `<p style="margin:8px 0"><strong>${item.productName}</strong> (x${item.quantity})`;
-      if (item.sessionDate) codesHtml += ` — ${item.sessionDate}`;
-      codesHtml += `</p>`;
-      codesHtml += `<p style="margin:2px 0 2px 20px;font-family:monospace;font-size:14px">Code: ${bookingId}-${i}</p>`;
+      const ticketCode = `${bookingId}-${i}`;
+      const ticketLabel = `${item.productName}${item.sessionDate ? ` — ${item.sessionDate}` : ''} (x${item.quantity})`;
+      codesHtml += await qrBlock(ticketLabel, ticketCode);
 
       if (item.addOns) {
         for (let j = 0; j < item.addOns.length; j++) {
@@ -76,8 +87,8 @@ async function sendConfirmationEmail(bookingData, bookingRef) {
             const code = addonQty > 1
               ? `${bookingId}-${i}-addon-${j}-${k}`
               : `${bookingId}-${i}-addon-${j}`;
-            codesHtml += `<p style="margin:2px 0 2px 40px;font-size:13px">🎁 ${addon.name}${addon.variant ? ` (${addon.variant})` : ''}</p>`;
-            codesHtml += `<p style="margin:2px 0 2px 40px;font-family:monospace;font-size:14px">Code: ${code}</p>`;
+            const addonLabel = `🎁 ${addon.name}${addon.variant ? ` (${addon.variant})` : ''}`;
+            codesHtml += await qrBlock(addonLabel, code, '20px');
           }
         }
       }
@@ -92,11 +103,11 @@ async function sendConfirmationEmail(bookingData, bookingRef) {
           <p><strong>Booking ID:</strong> ${bookingId}</p>
           <p><strong>Total:</strong> RM ${(bookingData.totalAmount || 0).toFixed(2)}</p>
         </div>
-        <h3>Your Redemption Codes</h3>
+        <h3>Your QR Codes</h3>
+        <p style="font-size:13px;color:#475569">Show each QR code at the event check-in counter. Each code can only be used once.</p>
         ${codesHtml}
-        <p style="margin-top:24px;padding:16px;background:#fef3c7;border-radius:8px">
-          <strong>Important:</strong> Show these codes (or the QR codes from your booking page)
-          at the event check-in counter. Each code can only be used once.
+        <p style="margin-top:24px;padding:16px;background:#fef3c7;border-radius:8px;font-size:13px">
+          <strong>Important:</strong> Screenshot or print this email. QR codes expire after redemption.
         </p>
         <p style="margin-top:24px;color:#64748b;font-size:12px">
           LRC Putrajaya · Lake Recreation Center
