@@ -3,7 +3,6 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { doc, onSnapshot } from 'firebase/firestore'; 
 import { db } from '../services/firebase';
 import { Booking } from '../types';
-import { QRCodeSVG } from 'qrcode.react';
 import Logo from '../components/common/Logo';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
@@ -66,69 +65,40 @@ const OrderConfirmationPage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Redemption Codes & QR Codes */}
+                {/* Check-in Info — Phone-based, no QR codes */}
                 {booking.paymentStatus === 'paid' && (
                   <div className="text-left mt-8 border-t pt-4">
-                    <h2 className="font-semibold mb-2 text-lg">🎫 Your Tickets & Redemption Codes</h2>
-                    <p className="text-xs text-slate-500 mb-4">
-                      Screenshot or save this page. Show the QR code at the event for check-in.
-                    </p>
-                    <div className="space-y-4">
-                      {booking.items.map((item, i) => {
-                        const ticketCode = `${booking.id}-${i}`;
-                        return (
-                          <div key={ticketCode} className="border border-slate-200 rounded-xl p-4 bg-slate-50">
-                            <p className="font-bold text-slate-800">
-                              {item.productName}
-                              {item.sessionDate && (
-                                <span className="text-sm font-normal text-slate-500 ml-2">
-                                  — {item.sessionDate}
-                                </span>
-                              )}
-                            </p>
-                            <p className="text-xs text-slate-500 mt-1">
-                              Qty: {item.quantity} · Code: <code className="bg-slate-200 px-1 rounded">{ticketCode}</code>
-                            </p>
-                            <div className="mt-3 flex justify-center">
-                              <QRCodeSVG
-                                value={ticketCode}
-                                size={120}
-                                bgColor="#ffffff"
-                                fgColor="#1e293b"
-                                level="M"
-                              />
+                    <h2 className="font-semibold mb-2 text-lg">🎫 Your Booking Summary</h2>
+                    <div className="space-y-3">
+                      {booking.items.map((item, i) => (
+                        <div key={i} className="border border-slate-200 rounded-lg p-3">
+                          <p className="font-bold text-slate-800">
+                            {item.productName}
+                            {item.sessionDate && (
+                              <span className="text-sm font-normal text-slate-500 ml-2">
+                                — {item.sessionDate}
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-xs text-slate-500">Qty: {item.quantity}</p>
+                          {item.addOns && item.addOns.map((addon, ai) => (
+                            <div key={ai} className="mt-1 ml-3 border-l-2 border-indigo-200 pl-3">
+                              <p className="text-sm text-indigo-700">
+                                🎁 {addon.name}{addon.variant ? ` (${addon.variant})` : ''}
+                                <span className="text-xs text-slate-500 ml-1">×{addon.quantity || 1}</span>
+                              </p>
                             </div>
-                            {/* Add-on redemptions */}
-                            {item.addOns && item.addOns.map((addon, addIdx) => {
-                              const addonQty = addon.quantity || 1;
-                              return Array.from({ length: addonQty }).map((_, qtyIdx) => {
-                                const merchCode = addonQty > 1
-                                  ? `${booking.id}-${i}-addon-${addIdx}-${qtyIdx}`
-                                  : `${booking.id}-${i}-addon-${addIdx}`;
-                                return (
-                                  <div key={merchCode} className="mt-3 ml-4 border-l-2 border-indigo-200 pl-4">
-                                    <p className="text-sm font-medium text-indigo-700">
-                                      🎁 {addon.name}{addon.variant ? ` (${addon.variant})` : ''}
-                                    </p>
-                                    <p className="text-xs text-slate-500">
-                                      Code: <code className="bg-slate-200 px-1 rounded">{merchCode}</code>
-                                    </p>
-                                    <div className="mt-2 flex justify-center">
-                                      <QRCodeSVG
-                                        value={merchCode}
-                                        size={100}
-                                        bgColor="#ffffff"
-                                        fgColor="#4338ca"
-                                        level="M"
-                                      />
-                                    </div>
-                                  </div>
-                                );
-                              });
-                            })}
-                          </div>
-                        );
-                      })}
+                          ))}
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-6 p-4 bg-indigo-50 border border-indigo-200 rounded-xl text-center">
+                      <p className="text-indigo-800 font-semibold text-sm">
+                        📱 Please present your phone number at the check-in counter.
+                      </p>
+                      <p className="text-indigo-600 text-xs mt-1">
+                        Our staff will verify your booking using your phone number.
+                      </p>
                     </div>
                   </div>
                 )}

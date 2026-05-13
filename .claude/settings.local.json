@@ -2,7 +2,18 @@
   "permissions": {
     "allow": [
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(python -m git_filter_repo --path functions/service-account-key.json --invert-paths --force)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(firebase hosting:sites:list)",
+      "Bash(nslookup course.lakerecreationcenter.com)",
+      "Bash(Resolve-DnsName course.lakerecreationcenter.com -ErrorAction SilentlyContinue)",
+      "Bash(firebase deploy *)",
+      "Bash(git commit *)",
+      "Bash(npm install *)",
+      "Bash(Get-ChildItem -Force)",
+      "Bash(Select-Object -First 20)"
     ]
   }
 }

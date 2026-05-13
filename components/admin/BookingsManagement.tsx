@@ -210,6 +210,7 @@ const BookingsManagement: React.FC = () => {
                             <th className="px-6 py-3 text-right font-medium text-slate-500 uppercase tracking-wider">Amount</th>
                             <th className="px-6 py-3 text-center font-medium text-slate-500 uppercase tracking-wider">Status</th>
                             <th className="px-6 py-3 text-center font-medium text-slate-500 uppercase tracking-wider">Sync</th>
+                            <th className="px-6 py-3 text-center font-medium text-slate-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-slate-100">
@@ -235,7 +236,15 @@ const BookingsManagement: React.FC = () => {
 
                                 <td className="block md:table-cell py-2 px-1 md:px-6 mt-2 md:mt-0">
                                     <div className="flex justify-between items-center md:block">
-                                        <span className="text-xs text-slate-600 line-clamp-1">{(booking.items || []).map(i => i ? `${i.quantity || 1}x ${i.courseName || 'Unknown'}` : '').join(', ')}</span>
+                                        <span className="text-xs text-slate-600 line-clamp-1">{(booking.items || []).map(i => {
+                                            if (!i) return '';
+                                            let str = `${i.quantity || 1}x ${i.productName || (i as any).courseName || 'Unknown'}`;
+                                            if (i.addOns && i.addOns.length > 0) {
+                                                const addOnStr = i.addOns.map(a => `${a.name}${a.variant ? ` (${a.variant})` : ''}`).join(', ');
+                                                str += ` + ${addOnStr}`;
+                                            }
+                                            return str;
+                                        }).join(', ')}</span>
                                         {/* Mobile hidden date */}
                                         <span className="hidden md:block text-xs text-slate-400 mt-1">{formatDate(booking.bookingDate)}</span>
                                     </div>
@@ -293,10 +302,24 @@ const BookingsManagement: React.FC = () => {
                                         )}
                                     </div>
                                 </td>
+
+                                {/* Actions */}
+                                <td className="block md:table-cell py-2 px-1 md:px-6 text-center">
+                                    <button
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDelete(booking.id);
+                                        }}
+                                        className="px-3 py-1 bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 rounded-lg text-xs font-bold transition"
+                                        title="Delete booking"
+                                    >
+                                        🗑 Delete
+                                    </button>
+                                </td>
                             </tr>
                         )) : (
                             <tr>
-                                <td colSpan={5} className="text-center py-12 text-slate-400">
+                                <td colSpan={6} className="text-center py-12 text-slate-400">
                                     No bookings found.
                                 </td>
                             </tr>

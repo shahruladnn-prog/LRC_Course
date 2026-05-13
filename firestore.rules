@@ -44,11 +44,10 @@ service cloud.firestore {
     // ============================================================
     match /bookings/{docId} {
       // Guests create bookings during checkout (no auth required).
-      // Only admin SDK (Cloud Functions) can update/delete.
-      // Admin users can read to view bookings.
+      // Admin users can read, update, and delete bookings.
       allow read: if isAdmin();
       allow create: if true;
-      allow update, delete: if false;
+      allow update, delete: if isAdmin();
     }
 
     match /redemptions/{docId} {

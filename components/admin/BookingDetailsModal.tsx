@@ -11,8 +11,23 @@ interface BookingDetailsModalProps {
 
 const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ booking, onClose, onUpdate }) => {
     const [syncing, setSyncing] = useState(false);
+    const [emailing, setEmailing] = useState(false);
 
     if (!booking) return null;
+
+    const handleResendEmail = async () => {
+        setEmailing(true);
+        try {
+            const resendFn = httpsCallable(functions, 'sendBookingConfirmationEmail');
+            await resendFn({ bookingId: booking.id });
+            alert('Confirmation email resent successfully!');
+        } catch (error: any) {
+            console.error('Resend email failed:', error);
+            alert(`Failed to resend email: ${error.message}`);
+        } finally {
+            setEmailing(false);
+        }
+    };
 
     const handleManualSync = async () => {
         setSyncing(true);
@@ -145,14 +160,26 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ booking, onCl
                                 </thead>
                                 <tbody className="divide-y divide-slate-100">
                                     {booking.items.map((item, idx) => (
-                                        <tr key={idx}>
-                                            <td className="px-4 py-3">
-                                                <div className="font-medium text-slate-900">{item.productName}</div>
-                                                <div className="text-xs text-slate-500">Qty: {item.quantity}</div>
-                                            </td>
-                                            <td className="px-4 py-3 text-center text-slate-600">{item.sessionDate || 'N/A'}</td>
-                                            <td className="px-4 py-3 text-right font-mono text-slate-900">RM {item.price.toFixed(2)}</td>
-                                        </tr>
+                                        <React.Fragment key={idx}>
+                                            <tr>
+                                                <td className="px-4 py-3">
+                                                    <div className="font-medium text-slate-900">{item.productName}</div>
+                                                    <div className="text-xs text-slate-500">Qty: {item.quantity}</div>
+                                                </td>
+                                                <td className="px-4 py-3 text-center text-slate-600">{item.sessionDate || 'N/A'}</td>
+                                                <td className="px-4 py-3 text-right font-mono text-slate-900">RM {item.price.toFixed(2)}</td>
+                                            </tr>
+                                            {item.addOns && item.addOns.map((addon, ai) => (
+                                                <tr key={`addon-${ai}`} className="bg-slate-50">
+                                                    <td className="px-4 py-2 pl-8">
+                                                        <div className="text-sm text-slate-600">↳ {addon.name}{addon.variant ? ` — ${addon.variant}` : ''}</div>
+                                                        <div className="text-xs text-slate-400">Add-on × {addon.quantity || 1}</div>
+                                                    </td>
+                                                    <td className="px-4 py-2 text-center text-slate-400">—</td>
+                                                    <td className="px-4 py-2 text-right font-mono text-slate-600">RM {((addon.price || 0) * (addon.quantity || 1)).toFixed(2)}</td>
+                                                </tr>
+                                            ))}
+                                        </React.Fragment>
                                     ))}
                                 </tbody>
                             </table>
@@ -165,6 +192,16 @@ const BookingDetailsModal: React.FC<BookingDetailsModalProps> = ({ booking, onCl
                     <button onClick={onClose} className="px-5 py-2 text-slate-600 font-medium hover:bg-slate-200 rounded-lg transition">
                         Close
                     </button>
+                    {/* Resend Email button — always available for paid bookings */}
+                    {booking.paymentStatus === 'paid' && booking.customerEmail && (
+                        <button
+                            onClick={handleResendEmail}
+                            disabled={emailing}
+                            className="px-5 py-2 bg-emerald-600 text-white font-bold rounded-lg hover:bg-emerald-700 transition shadow-lg shadow-emerald-200 disabled:opacity-50"
+                        >
+                            {emailing ? 'Sending...' : 'Resend Email'}
+                        </button>
+                    )}
                     {/* Only show Payment Link if pending */}
                     {booking.paymentStatus === 'pending' && (
                         <a

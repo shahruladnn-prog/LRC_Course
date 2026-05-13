@@ -426,6 +426,29 @@ export const processSuccessfulPayment = async (bookingId: string, items: Booking
 // Redemption Functions (NEW — v2)
 // ============================================================
 
+export const getBookingsByPhone = async (phone: string): Promise<Booking[]> => {
+    try {
+        const q = query(
+            collection(db, 'bookings').withConverter(bookingConverter),
+            where('customerPhone', '==', phone),
+            where('paymentStatus', '==', 'paid')
+        );
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => doc.data());
+    } catch (_) {
+        // Fallback: try without converter
+        try {
+            const q2 = query(
+                collection(db, 'bookings'),
+                where('customerPhone', '==', phone),
+                where('paymentStatus', '==', 'paid')
+            );
+            const snap2 = await getDocs(q2);
+            return snap2.docs.map(doc => ({ id: doc.id, ...doc.data() } as Booking));
+        } catch (_) { return []; }
+    }
+};
+
 export const getRedemptions = async (): Promise<Redemption[]> => {
     try {
         const col = collection(db, 'redemptions');

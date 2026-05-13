@@ -60,36 +60,30 @@ async function sendConfirmationEmail(bookingData, bookingRef) {
     const items = bookingData.items || [];
     const bookingId = bookingRef.id;
 
-    // Helper: generate a QR code block (label + QR image)
-    const qrBlock = async (label, code, indent = '0px') => {
-      const dataUrl = await QRCode.toDataURL(code, { width: 160, margin: 1 });
-      return `
-        <div style="margin:10px 0 10px ${indent};display:inline-block;text-align:center">
-          <p style="margin:0 0 4px;font-size:13px">${label}</p>
-          <img src="${dataUrl}" width="120" height="120" alt="${code}" style="display:block"/>
-          <p style="margin:4px 0 0;font-family:monospace;font-size:11px;color:#475569">${code}</p>
-        </div>`;
-    };
-
-    // Build redemption codes list with QR codes
-    let codesHtml = '';
+    // Build items list HTML (no QR codes)
+    let itemsHtml = '';
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
-      const ticketCode = `${bookingId}-${i}`;
-      const ticketLabel = `${item.productName}${item.sessionDate ? ` — ${item.sessionDate}` : ''} (x${item.quantity})`;
-      codesHtml += await qrBlock(ticketLabel, ticketCode);
-
+      itemsHtml += `
+        <tr>
+          <td style="padding:8px 12px;border-bottom:1px solid #e2e8f0">
+            <strong>${item.productName}</strong>
+            ${item.sessionDate ? `<br/><span style="font-size:12px;color:#64748b">Date: ${item.sessionDate}</span>` : ''}
+          </td>
+          <td style="padding:8px 12px;text-align:center;border-bottom:1px solid #e2e8f0">x${item.quantity}</td>
+          <td style="padding:8px 12px;text-align:right;border-bottom:1px solid #e2e8f0">RM ${(item.price * item.quantity).toFixed(2)}</td>
+        </tr>`;
       if (item.addOns) {
         for (let j = 0; j < item.addOns.length; j++) {
           const addon = item.addOns[j];
-          const addonQty = addon.quantity || 1;
-          for (let k = 0; k < addonQty; k++) {
-            const code = addonQty > 1
-              ? `${bookingId}-${i}-addon-${j}-${k}`
-              : `${bookingId}-${i}-addon-${j}`;
-            const addonLabel = `🎁 ${addon.name}${addon.variant ? ` (${addon.variant})` : ''}`;
-            codesHtml += await qrBlock(addonLabel, code, '20px');
-          }
+          itemsHtml += `
+        <tr style="background:#f8fafc">
+          <td style="padding:6px 12px 6px 24px;border-bottom:1px solid #e2e8f0;font-size:13px;color:#475569">
+            ↳ ${addon.name}${addon.variant ? ` (${addon.variant})` : ''}
+          </td>
+          <td style="padding:6px 12px;text-align:center;border-bottom:1px solid #e2e8f0;font-size:13px">x${addon.quantity || 1}</td>
+          <td style="padding:6px 12px;text-align:right;border-bottom:1px solid #e2e8f0;font-size:13px">RM ${((addon.price || 0) * (addon.quantity || 1)).toFixed(2)}</td>
+        </tr>`;
         }
       }
     }
@@ -103,11 +97,21 @@ async function sendConfirmationEmail(bookingData, bookingRef) {
           <p><strong>Booking ID:</strong> ${bookingId}</p>
           <p><strong>Total:</strong> RM ${(bookingData.totalAmount || 0).toFixed(2)}</p>
         </div>
-        <h3>Your QR Codes</h3>
-        <p style="font-size:13px;color:#475569">Show each QR code at the event check-in counter. Each code can only be used once.</p>
-        ${codesHtml}
-        <p style="margin-top:24px;padding:16px;background:#fef3c7;border-radius:8px;font-size:13px">
-          <strong>Important:</strong> Screenshot or print this email. QR codes expire after redemption.
+        <h3>Your Items</h3>
+        <table style="width:100%;border-collapse:collapse;margin-bottom:16px">
+          <thead>
+            <tr style="background:#e2e8f0">
+              <th style="padding:8px 12px;text-align:left;font-size:12px;text-transform:uppercase;color:#475569">Item</th>
+              <th style="padding:8px 12px;text-align:center;font-size:12px;text-transform:uppercase;color:#475569">Qty</th>
+              <th style="padding:8px 12px;text-align:right;font-size:12px;text-transform:uppercase;color:#475569">Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+        <p style="margin-top:24px;padding:16px;background:#eef2ff;border-radius:8px;font-size:14px;color:#4338ca">
+          <strong>Check-in:</strong> Please present your <strong>phone number (${bookingData.customerPhone || 'as registered'})</strong> at the check-in counter. Our staff will verify your booking.
         </p>
         <p style="margin-top:24px;color:#64748b;font-size:12px">
           LRC Putrajaya · Lake Recreation Center
@@ -610,7 +614,26 @@ exports.manualAdminUpdate = onRequest({ cors: true, timeoutSeconds: 300, secrets
   res.status(200).send("Sync Complete");
 });
 
-// 4. MANUAL LOYVERSE SYNC (Callable — Admin Only)
+// 4. RESEND CONFIRMATION EMAIL (Callable — Admin Only)
+exports.sendBookingConfirmationEmail = onCall(
+  { secrets: [SMTP_PASSWORD] },
+  async (request) => {
+    if (!request.auth || !request.auth.token || request.auth.token.admin !== true) {
+      throw new HttpsError('permission-denied', 'Only admins can resend emails.');
+    }
+    const { bookingId } = request.data;
+    if (!bookingId) throw new HttpsError('invalid-argument', 'bookingId required.');
+    const bookingRef = db.collection('bookings').doc(bookingId);
+    const snap = await bookingRef.get();
+    if (!snap.exists) throw new HttpsError('not-found', 'Booking not found.');
+    const bookingData = snap.data();
+    if (!bookingData.customerEmail) throw new HttpsError('failed-precondition', 'No customer email on this booking.');
+    await sendConfirmationEmail(bookingData, bookingRef);
+    return { success: true };
+  }
+);
+
+// 5. MANUAL LOYVERSE SYNC (Callable — Admin Only)
 exports.syncToLoyverse = onCall(
   { cors: true, timeoutSeconds: 300, secrets: [LOYVERSE_TOKEN, LOYVERSE_STORE_ID, LOYVERSE_PAYMENT_ID] },
   async (request) => {
