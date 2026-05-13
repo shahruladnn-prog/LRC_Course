@@ -23,10 +23,11 @@ const ProductDetailPage: React.FC = () => {
 
     // Quantity & add-on state
     const [quantity, setQuantity] = useState(1);
-    const [selectedAddOns, setSelectedAddOns] = useState<Record<string, { selected: boolean; variant: string; quantity: number }>>({});
+    const [selectedAddOns, setSelectedAddOns] = useState<Record<string, { selected: boolean; quantity: number; variants: string[] }>>({});
     const [isTermsModalOpen, setIsTermsModalOpen] = useState(false);
     const [showPostAddModal, setShowPostAddModal] = useState(false);
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [lightboxOpen, setLightboxOpen] = useState(false);
 
     // Fetch product
     useEffect(() => {
@@ -95,7 +96,8 @@ const ProductDetailPage: React.FC = () => {
     const addOnHasMissingVariant = allAddOns.some(addOn => {
         const sel = selectedAddOns[addOn.id];
         if (!sel?.selected) return false;
-        return addOn.variants.length > 0 && !sel.variant;
+        if (addOn.variants.length === 0) return false;
+        return sel.variants.length === 0 || sel.variants.some(v => !v);
     });
 
     // Available slots accounting for existing cart
@@ -113,13 +115,32 @@ const ProductDetailPage: React.FC = () => {
         for (const addOn of allAddOns) {
             const sel = selectedAddOns[addOn.id];
             if (sel?.selected) {
-                addOns.push({
-                    addOnId: addOn.id,
-                    name: addOn.name,
-                    variant: sel.variant || '',
-                    price: addOn.price,
-                    quantity: sel.quantity || 1,
-                });
+                const hasVariants = addOn.variants.length > 0;
+                if (hasVariants && sel.variants.length > 0) {
+                    // Group by variant to create one CartAddOn per variant type
+                    const variantCounts: Record<string, number> = {};
+                    sel.variants.forEach(v => {
+                        const key = v || addOn.variants[0];
+                        variantCounts[key] = (variantCounts[key] || 0) + 1;
+                    });
+                    for (const [variant, count] of Object.entries(variantCounts)) {
+                        addOns.push({
+                            addOnId: addOn.id,
+                            name: addOn.name,
+                            variant,
+                            price: addOn.price,
+                            quantity: count,
+                        });
+                    }
+                } else {
+                    addOns.push({
+                        addOnId: addOn.id,
+                        name: addOn.name,
+                        variant: '',
+                        price: addOn.price,
+                        quantity: sel.quantity || 1,
+                    });
+                }
             }
         }
 
@@ -214,7 +235,8 @@ const ProductDetailPage: React.FC = () => {
                                 <img
                                     src={images[currentImageIndex]}
                                     alt={`${product.name} - Image ${currentImageIndex + 1}`}
-                                    className="w-full h-full object-cover"
+                                    className="w-full h-full object-cover cursor-zoom-in"
+                                    onClick={() => setLightboxOpen(true)}
                                     onError={(e) => {
                                         const target = e.target as HTMLImageElement;
                                         target.style.display = 'none';
@@ -349,8 +371,9 @@ const ProductDetailPage: React.FC = () => {
                                 {allAddOns.map((addOn) => {
                                     const sel = selectedAddOns[addOn.id];
                                     const isSelected = sel?.selected || false;
-                                    const selVariant = sel?.variant || '';
                                     const selQty = sel?.quantity || 1;
+                                    const selVariants = sel?.variants || [];
+                                    const hasVariants = addOn.variants.length > 0;
 
                                     return (
                                         <div key={addOn.id} className="bg-white border border-slate-200 rounded-xl p-4 space-y-3">
@@ -361,12 +384,13 @@ const ProductDetailPage: React.FC = () => {
                                                     checked={isSelected}
                                                     onChange={(e) => {
                                                         const checked = e.target.checked;
+                                                        const defVariant = hasVariants ? addOn.variants[0] : '';
                                                         setSelectedAddOns(prev => ({
                                                             ...prev,
                                                             [addOn.id]: {
                                                                 selected: checked,
-                                                                variant: checked && addOn.variants.length > 0 ? addOn.variants[0] : '',
                                                                 quantity: 1,
+                                                                variants: checked && hasVariants ? [defVariant] : [],
                                                             },
                                                         }));
                                                     }}
@@ -379,57 +403,85 @@ const ProductDetailPage: React.FC = () => {
 
                                             {isSelected && (
                                                 <>
-                                                    {/* Variant selector (if variants exist) */}
-                                                    {addOn.variants.length > 0 && (
-                                                        <div className="ml-8">
-                                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-2">
-                                                                {addOn.variantField || 'Option'}
-                                                            </label>
-                                                            <div className="flex flex-wrap gap-2">
-                                                                {addOn.variants.map(v => (
-                                                                    <button
-                                                                        key={v}
-                                                                        type="button"
-                                                                        onClick={() => setSelectedAddOns(prev => ({
-                                                                            ...prev,
-                                                                            [addOn.id]: { ...prev[addOn.id], variant: v },
-                                                                        }))}
-                                                                        className={`px-4 py-2 rounded-lg text-sm font-semibold border transition-all ${selVariant === v
-                                                                                ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                                                                                : 'bg-white text-slate-600 border-slate-300 hover:border-indigo-400'
-                                                                            }`}
-                                                                    >
-                                                                        {v}
-                                                                    </button>
-                                                                ))}
-                                                            </div>
-                                                        </div>
-                                                    )}
-
-                                                    {/* Quantity selector */}
+                                                    {/* Quantity selector (pick first) */}
                                                     <div className="ml-8 flex items-center gap-3">
                                                         <span className="text-xs font-bold text-slate-500 uppercase">Qty:</span>
                                                         <button
                                                             type="button"
-                                                            onClick={() => setSelectedAddOns(prev => ({
-                                                                ...prev,
-                                                                [addOn.id]: { ...prev[addOn.id], quantity: Math.max(1, selQty - 1) },
-                                                            }))}
+                                                            onClick={() => setSelectedAddOns(prev => {
+                                                                const current = prev[addOn.id];
+                                                                const newQty = Math.max(1, selQty - 1);
+                                                                return {
+                                                                    ...prev,
+                                                                    [addOn.id]: {
+                                                                        ...current,
+                                                                        quantity: newQty,
+                                                                        variants: hasVariants ? selVariants.slice(0, newQty) : [],
+                                                                    },
+                                                                };
+                                                            })}
                                                             className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center font-bold text-sm transition"
                                                         >−</button>
                                                         <span className="w-8 text-center font-bold text-slate-800">{selQty}</span>
                                                         <button
                                                             type="button"
-                                                            onClick={() => setSelectedAddOns(prev => ({
-                                                                ...prev,
-                                                                [addOn.id]: { ...prev[addOn.id], quantity: selQty + 1 },
-                                                            }))}
+                                                            onClick={() => setSelectedAddOns(prev => {
+                                                                const current = prev[addOn.id];
+                                                                const newQty = selQty + 1;
+                                                                const newVariants = [...selVariants];
+                                                                while (newVariants.length < newQty) {
+                                                                    newVariants.push(hasVariants ? addOn.variants[0] : '');
+                                                                }
+                                                                return {
+                                                                    ...prev,
+                                                                    [addOn.id]: { ...current, quantity: newQty, variants: newVariants },
+                                                                };
+                                                            })}
                                                             className="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 flex items-center justify-center font-bold text-sm transition"
                                                         >+</button>
                                                         <span className="text-xs text-slate-400 ml-2">
                                                             = +RM{(addOn.price * selQty).toFixed(0)}
                                                         </span>
                                                     </div>
+
+                                                    {/* Per-unit variant selectors */}
+                                                    {hasVariants && selVariants.length > 0 && (
+                                                        <div className="ml-8 space-y-2">
+                                                            <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block">
+                                                                {addOn.variantField || 'Options'}
+                                                            </label>
+                                                            {selVariants.map((v, unitIdx) => (
+                                                                <div key={unitIdx} className="flex items-center gap-2">
+                                                                    <span className="text-xs text-slate-400 w-14">
+                                                                        #{unitIdx + 1}:
+                                                                    </span>
+                                                                    <div className="flex flex-wrap gap-1">
+                                                                        {addOn.variants.map(vOpt => (
+                                                                            <button
+                                                                                key={vOpt}
+                                                                                type="button"
+                                                                                onClick={() => setSelectedAddOns(prev => {
+                                                                                    const newVariants = [...prev[addOn.id].variants];
+                                                                                    newVariants[unitIdx] = vOpt;
+                                                                                    return {
+                                                                                        ...prev,
+                                                                                        [addOn.id]: { ...prev[addOn.id], variants: newVariants },
+                                                                                    };
+                                                                                })}
+                                                                                className={`px-3 py-1 rounded-md text-xs font-semibold border transition-all ${
+                                                                                    v === vOpt
+                                                                                        ? 'bg-indigo-600 text-white border-indigo-600'
+                                                                                        : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-300'
+                                                                                }`}
+                                                                            >
+                                                                                {vOpt}
+                                                                            </button>
+                                                                        ))}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </>
                                             )}
                                         </div>
@@ -484,6 +536,56 @@ const ProductDetailPage: React.FC = () => {
                     </div>
                 </div>
             </main>
+
+            {/* Lightbox Modal */}
+            {lightboxOpen && images.length > 0 && (
+                <div
+                    className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center"
+                    onClick={() => setLightboxOpen(false)}
+                >
+                    <button
+                        onClick={() => setLightboxOpen(false)}
+                        className="absolute top-4 right-4 text-white/70 hover:text-white text-3xl font-bold z-10"
+                    >
+                        ✕
+                    </button>
+
+                    {images.length > 1 && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setCurrentImageIndex(prev => prev === 0 ? images.length - 1 : prev - 1);
+                            }}
+                            className="absolute left-4 text-white/70 hover:text-white text-4xl font-bold z-10 px-4 py-2"
+                        >
+                            ‹
+                        </button>
+                    )}
+
+                    <img
+                        src={images[currentImageIndex]}
+                        alt={`${product.name} - Image ${currentImageIndex + 1}`}
+                        className="max-w-[90vw] max-h-[90vh] object-contain rounded-lg"
+                        onClick={(e) => e.stopPropagation()}
+                    />
+
+                    {images.length > 1 && (
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                setCurrentImageIndex(prev => prev === images.length - 1 ? 0 : prev + 1);
+                            }}
+                            className="absolute right-4 text-white/70 hover:text-white text-4xl font-bold z-10 px-4 py-2"
+                        >
+                            ›
+                        </button>
+                    )}
+
+                    <div className="absolute bottom-6 text-white/60 text-sm">
+                        {currentImageIndex + 1} / {images.length}
+                    </div>
+                </div>
+            )}
 
             {/* Terms & Conditions Modal */}
             <TermsModal

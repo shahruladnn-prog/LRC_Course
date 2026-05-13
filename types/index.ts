@@ -23,7 +23,7 @@ export interface Product {
     hasAddOns?: boolean;
     addOns?: AddOn[];
     eventDate?: string; // For entrance tickets without sessions
-    images?: string[];  // Up to 3 image URLs
+    images?: string[];  // Up to 7 image URLs
     showRemainingSlots?: boolean; // Toggle: show remaining slot count on storefront (default true)
 }
 

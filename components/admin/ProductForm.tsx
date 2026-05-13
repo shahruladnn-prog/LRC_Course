@@ -21,9 +21,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, categories, onSave, 
     const [eventDate, setEventDate] = useState('');
     const [hasAddOns, setHasAddOns] = useState(false);
     const [addOns, setAddOns] = useState<AddOn[]>([]);
-    const [image1, setImage1] = useState('');
-    const [image2, setImage2] = useState('');
-    const [image3, setImage3] = useState('');
+    const [imageUrls, setImageUrls] = useState<string[]>(['']);
     const [showRemainingSlots, setShowRemainingSlots] = useState(true);
 
     useEffect(() => {
@@ -41,9 +39,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, categories, onSave, 
             setAddOns(product.addOns || []);
             setShowRemainingSlots(product.showRemainingSlots !== undefined ? product.showRemainingSlots : true);
             const imgs = product.images || [];
-            setImage1(imgs[0] || '');
-            setImage2(imgs[1] || '');
-            setImage3(imgs[2] || '');
+            setImageUrls(imgs.length > 0 ? imgs : ['']);
         } else {
             resetForm();
         }
@@ -62,9 +58,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, categories, onSave, 
         setHasAddOns(false);
         setAddOns([]);
         setShowRemainingSlots(true);
-        setImage1('');
-        setImage2('');
-        setImage3('');
+        setImageUrls(['']);
     };
 
     // Add-on helpers
@@ -94,7 +88,7 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, categories, onSave, 
             ? addOns.filter(a => a.name.trim() !== '')
             : [];
 
-        const images = [image1, image2, image3].filter(url => url.trim() !== '');
+        const images = imageUrls.filter(url => url.trim() !== '');
 
         const productData = {
             name,
@@ -176,13 +170,54 @@ const ProductForm: React.FC<ProductFormProps> = ({ product, categories, onSave, 
 
                     {/* Product Images */}
                     <div className="border border-slate-200 rounded-lg p-4 bg-slate-50">
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Product Images (Optional — max 3)</label>
-                        <p className="text-xs text-slate-500 mb-3">Paste direct image URLs (e.g., from Imgur). Leave empty if none.</p>
-                        <div className="space-y-2">
-                            <input type="text" value={image1} onChange={e => setImage1(e.target.value)} placeholder="Image 1 URL" className="block w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm bg-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
-                            <input type="text" value={image2} onChange={e => setImage2(e.target.value)} placeholder="Image 2 URL" className="block w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm bg-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
-                            <input type="text" value={image3} onChange={e => setImage3(e.target.value)} placeholder="Image 3 URL" className="block w-full px-3 py-1.5 border border-slate-300 rounded-md text-sm bg-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500" />
+                        <div className="flex items-center justify-between mb-2">
+                            <label className="block text-sm font-medium text-slate-700">Product Images (max 7)</label>
+                            {imageUrls.length < 7 && (
+                                <button
+                                    type="button"
+                                    onClick={() => setImageUrls([...imageUrls, ''])}
+                                    className="text-xs text-indigo-600 hover:text-indigo-800 font-bold px-2 py-1 rounded border border-indigo-200 hover:bg-indigo-50 transition"
+                                >
+                                    + Add Image
+                                </button>
+                            )}
                         </div>
+                        <p className="text-xs text-slate-500 mb-3">Paste direct image URLs. Use an image host like Imgur.</p>
+                        <div className="space-y-2">
+                            {imageUrls.map((url, idx) => (
+                                <div key={idx} className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={url}
+                                        onChange={e => {
+                                            const updated = [...imageUrls];
+                                            updated[idx] = e.target.value;
+                                            setImageUrls(updated);
+                                        }}
+                                        placeholder={`Image ${idx + 1} URL`}
+                                        className="flex-1 px-3 py-1.5 border border-slate-300 rounded-md text-sm bg-white focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                    />
+                                    {imageUrls.length > 1 && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                const updated = imageUrls.filter((_, i) => i !== idx);
+                                                setImageUrls(updated.length === 0 ? [''] : updated);
+                                            }}
+                                            className="text-red-400 hover:text-red-600 text-sm px-2"
+                                            title="Remove image"
+                                        >
+                                            ✕
+                                        </button>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                        {imageUrls.filter(u => u.trim()).length > 0 && (
+                            <p className="mt-2 text-xs text-slate-400">
+                                {imageUrls.filter(u => u.trim()).length} image(s) added
+                            </p>
+                        )}
                     </div>
 
                     {/* Add-on Builder — Dynamic Multi-Add-On */ }
