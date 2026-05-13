@@ -100,7 +100,7 @@ async function sendConfirmationEmail(bookingData, bookingRef) {
     `;
 
     await resend.emails.send({
-      from: 'LRC Putrajaya <noreply@lrc.my>',
+      from: 'LRC Putrajaya <hello@wetlandputrajaya.com>',
       to: bookingData.customerEmail,
       subject: `Booking Confirmed — ${bookingId}`,
       html: html,
