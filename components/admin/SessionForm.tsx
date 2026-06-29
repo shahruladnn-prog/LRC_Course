@@ -4,21 +4,21 @@ import { Session } from '../../types';
 
 interface SessionFormProps {
   courseId: string;  // Prop name kept for backward compat; holds productId
-  onSave: (session: Omit<Session, 'id'>) => void;
+  onSave: (session: Omit<Session, 'id'>) => Promise<void>;
   isSaving: boolean;
 }
 
 const SessionForm: React.FC<SessionFormProps> = ({ courseId, onSave, isSaving }) => {
   const [date, setDate] = useState('');
   const [totalSlots, setTotalSlots] = useState(10);
-  
-  const handleSubmit = (e: FormEvent) => {
+
+  const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!date || totalSlots <= 0) {
         alert("Please provide a valid date and number of slots.");
         return;
     }
-    onSave({ productId: courseId, date, totalSlots, remainingSlots: totalSlots });
+    await onSave({ productId: courseId, date, totalSlots, remainingSlots: totalSlots });
     setDate('');
     setTotalSlots(10);
   };

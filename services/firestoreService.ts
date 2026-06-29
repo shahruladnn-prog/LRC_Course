@@ -45,37 +45,6 @@ const productConverter = {
     },
 };
 
-const courseConverter = {
-    toFirestore(course: WithFieldValue<Course>): DocumentData {
-        return {
-            name: course.name,
-            price: course.price,
-            category: course.category,
-            termsAndConditions: course.termsAndConditions,
-            isHidden: course.isHidden,
-            importantHighlight: course.importantHighlight || '',
-            sku: course.sku,
-            images: course.images || [],
-        };
-    },
-    fromFirestore(
-        snapshot: QueryDocumentSnapshot,
-        options: SnapshotOptions
-    ): Course {
-        const data = snapshot.data(options)!;
-        return {
-            id: snapshot.id,
-            name: data.name,
-            price: data.price,
-            category: data.category,
-            termsAndConditions: data.termsAndConditions,
-            isHidden: data.isHidden || false,
-            importantHighlight: data.importantHighlight || '',
-            sku: data.sku || '',
-            images: Array.isArray(data.images) ? data.images : [],
-        };
-    },
-};
 
 const sessionConverter = {
     toFirestore(session: WithFieldValue<Session>): DocumentData {
@@ -278,12 +247,14 @@ export const getSessionsForCourse = async (courseId: string): Promise<Session[]>
         });
     } catch (_) { /* may not have permission */ }
 
-    // Also try productId if courseId query returned nothing
-    if (results.length === 0) {
-        try {
-            const q = query(collection(db, 'sessions'), where('productId', '==', courseId));
-            const snapshot = await getDocs(q);
-            snapshot.forEach(doc => {
+    // Always also query by productId — new sessions store this field instead of courseId.
+    // Merge with deduplication so sessions stored under either field are included.
+    try {
+        const q = query(collection(db, 'sessions'), where('productId', '==', courseId));
+        const snapshot = await getDocs(q);
+        const existingIds = new Set(results.map(r => r.id));
+        snapshot.forEach(doc => {
+            if (!existingIds.has(doc.id)) {
                 const d = doc.data();
                 results.push({
                     id: doc.id,
@@ -292,9 +263,9 @@ export const getSessionsForCourse = async (courseId: string): Promise<Session[]>
                     totalSlots: d.totalSlots || 0,
                     remainingSlots: d.remainingSlots || 0,
                 });
-            });
-        } catch (_) { /* fallback failed too */ }
-    }
+            }
+        });
+    } catch (_) { /* productId query unavailable */ }
 
     return results;
 };

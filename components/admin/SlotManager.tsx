@@ -88,8 +88,14 @@ const SlotManager: React.FC<SlotManagerProps> = ({ courses, sessions, onSessionS
 
     const handleSessionSave = async (sessionData: Omit<Session, 'id'>) => {
         setIsSaving(true);
-        await onSessionSave(sessionData);
-        setIsSaving(false);
+        try {
+            await onSessionSave(sessionData);
+        } catch (error) {
+            console.error('Failed to add slot:', error);
+            alert('Failed to add slot. Please check your connection and try again.');
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const selectedProductSessions = selectedProductId ? sessions[selectedProductId] || [] : [];
